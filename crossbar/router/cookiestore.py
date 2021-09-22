@@ -311,3 +311,136 @@ class CookieStoreFileBacked(CookieStore):
 
             cookie_file.flush()
             os.fsync(cookie_file.fileno())
+
+# Zaber Hacks start here
+
+import time
+from izaber import initialize, config
+from nexus.domain import controller
+from nexus.domain.db import db
+
+# FIXME: need a more elegant way of keeping track of sessions
+from nexus.component.domain import SESSIONS
+
+class CookieDB(object):
+    def __init__(self):
+        self._cookie_store = {}
+
+
+    def get_cookie_obj(self, id):
+        if id not in db.cookies:
+            if id in self._cookie_store:
+                del self._cookie_store[id]
+            return
+
+        # Get the cookie and make sure it has not
+        # expired yet
+        cookie_obj = db.cookies[id]
+        if not cookie_obj.expired_():
+            return cookie_obj
+
+        # Okay this cookie has expired. Let's just
+        # double check to see if an associated session
+        # is still active on the system
+        # FIXME: need a more elegant way of keeping track of sessions
+        cache_id = cookie_obj.uuid
+        for session_id, data in SESSIONS.items():
+            extra = data.get('details',{}).get('authextra')
+            cache_id_cmp = extra.get('cache_id')
+            if not cache_id_cmp:
+                continue
+            if cache_id == cache_id_cmp:
+                cookie_obj.touch_()
+                return cookie_obj
+
+        # Newp, it's expired and we need to move on
+        del self._cookie_store[id]
+        cookie_obj.delete_()
+
+        return
+
+    def __getitem__(self, id):
+        cookie_obj = self.get_cookie_obj(id)
+        if not cookie_obj:
+            raise KeyError(f"No cookie {repr(id)}")
+
+        # If we'll pulling the cookie from the filesystem it
+        # won't be in the cache yet so we'll have to prep the
+        # local cache with a stub entry
+        if id not in self._cookie_store:
+            self._cookie_store[id] = cookie_obj.cbt_data()
+
+        return self._cookie_store[id]
+
+    def __setitem__(self, id, val):
+        self._cookie_store[id] = val
+
+    def __delitem__(self, id):
+        cookie_obj = self.get_cookie_obj(id)
+        if cookie_obj:
+            cookie_obj.delete_()
+        del self._cookie_store[id]
+
+    def __contains__(self, id):
+        # We validate against the cookie filesystem database
+        if self.get_cookie_obj(id):
+            return True
+        return False
+
+class CookieStoreMemoryBacked(CookieStore):
+    def __init__(self, config):
+        super().__init__(config)
+
+        # What we need to do is override the self._cookies object since
+        # that will be the part of the code that bridges to the internal
+        # file-backed DB
+        self._cookies = CookieDB()
+
+    def create(self):
+        """
+        Create a new cookie, returning the cookie ID and cookie header value.
+        """
+        # We use token_urlsafe as the official version creates tokens
+        # that are not filesystem safe with `/` as one of the possible
+        # token characters
+        cookie_obj = db.cookies.create_(
+                            {
+                                #'created': util.utcnow(),
+                                'created': time.time(),
+                                'max_age': self._cookie_max_age,
+                            },
+                            key_length=self._cookie_id_field_length
+                        )
+        cbt_data = cookie_obj.cbt_data()
+        cbtid = cookie_obj.key
+
+        self._cookies[cbtid] = cbt_data
+
+        self.log.debug("New cookie {cbtid} created", cbtid=cbtid)
+
+        # do NOT add the "secure" cookie attribute! "secure" refers to the
+        # scheme of the Web page that triggered the WS, not WS itself!!
+        return cbtid, '%s=%s;max-age=%d' % (self._cookie_id_field, cbtid, cbt_data['max_age'])
+
+    def setAuth(self, cbtid, authid, authrole, authmethod, authextra, authrealm):
+        """ This is the entry point when the system code wishes 
+        """
+        cookie_obj = self._cookies.get_cookie_obj(cbtid)
+        if not cookie_obj:
+            return
+
+        super().setAuth( cbtid, authid, authrole, authmethod, authextra, authrealm)
+
+        cookie = self._cookies[cbtid]
+        cookie_obj.update_({
+                        'modified': cookie['created'],
+                        'max_age': cookie['max_age'],
+                        'authid': cookie['authid'],
+                        'authrole': cookie['authrole'],
+                        'authmethod': cookie['authmethod'],
+                        'authrealm': cookie['authrealm'],
+                        'authextra': cookie['authextra'],
+                    })
+        cookie_obj.save_()
+
+initialize('crossbar-server')

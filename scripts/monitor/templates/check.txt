@@ -1,0 +1,34 @@
+{% if unmatched_rules -%}
+{% if unmatched_rules|length == 1%}
+There is one unmatched rule!
+{% else %}
+There are unmatched rules!
+{% endif %}
+An unmatched rule means that we expected the rule to match with a URI to existing on the nexus server. That this error popped up might mean something as simple as the URI's host just got rebooted or even that a service for some reason has fallen off and become inaccessible.
+
+{% for rule in unmatched_rules -%}{% if rule.match -%}
+	- Match: {{ rule.match }}
+{% else -%}
+	- Pattern: {{ rule.pattern }}
+{% endif %}{% endfor -%}
+{%- endif %}
+
+{%- if unmatched_registrations%}
+
+{%if unmatched_registrations|length == 1-%}
+There is one unmatched registrations!
+{%- else -%}
+There are unmatched registrations!
+{%- endif %}
+
+Unmatched registrations are caused when there is no rule that matches a particular URI on the server. This might mean that a new service has gone up, or possibly a rogue service has been hooked.
+
+The list is given such that that there is the unaccounted URI and the number of callees attached to that URI.
+
+{% for registration in unmatched_registrations -%}
+- {{ registration.uri }}{%- for callee in registration.callees %}
+  - {%if callee.authid%}{{ callee.authid }}{%else%}COMPONENT{%endif%} @ {{ callee.peer }}{% endfor %}
+
+{% endfor -%}
+
+{%- endif %}

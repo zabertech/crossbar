@@ -1,0 +1,25 @@
+{% extends "frame.html" %}
+
+{% block content %}
+<div class="container-lg">
+
+<h1>Manage {{role}}</h1>
+
+<h2 class="mt-4"><i class="bi bi-key"></i> URIs</h2>
+
+<div class="table-responsive"
+     id="role-permissions-{{uuid}}"></div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade"
+      id="role-modal"
+      tabindex="-1"
+      aria-labelledby="Modal Dialog"
+      aria-hidden="true">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content"></div>
+  </div>
+</div>
+
+{% endblock %}

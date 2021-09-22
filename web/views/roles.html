@@ -1,0 +1,29 @@
+{% extends "frame.html" %}
+
+{% block content %}
+
+<div class="container-lg">
+
+<h1 class="mt-4"><i class="bi bi-key"></i> System Roles</h1>
+
+<div class="list-group list-group-flush" id="roles">
+
+  {% for role in records %}
+  <div class="list-group-item">
+    <a class="list-group-item-action text-decoration-none cursor-pointer" href="#/roles/{{role.role}}">
+      <div class="d-flex w-100 justify-content-between">
+        <p class="mb-1">{{role.role}}</p>
+        <small>
+          <i class="bi bi-key"></i>
+        </small>
+      </div>
+
+    </a>
+  </div>
+  {% endfor %}
+
+</div>
+
+</div>
+
+{% endblock %}

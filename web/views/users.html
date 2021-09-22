@@ -1,0 +1,109 @@
+{% extends "frame.html" %}
+
+{% block content %}
+<div class="container-lg">
+
+<h1>Users</h1>
+
+{% if isTrusted %}
+<div class="user-create cursor-pointer mb-3">
+<i class="bi bi-person-plus"></i> New User
+</div>
+{% endif %}
+
+{% if isTrusted %}
+
+<div class="row g-3">
+
+  <div class="col-md-2">
+      <div class="form-check form-switch pt-1">
+        <input class="form-check-input" type="checkbox" id="filter-enabled">
+        <label class="form-check-label" for="flexSwitchCheckDefault">Enabled Only</label>
+      </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="input-group">
+      <input type="text"
+              class="form-control"
+              id='filter-query'
+              name="query"
+              aria-label="Search Query"
+              placeholder="Search Query">
+     </div>
+  </div>
+</div>
+
+{% endif %}
+
+<div class="table-responsive">
+  <table class="table table-hover">
+    <thead>
+      <tr>
+        <th scope="col">Name</th>
+        <th scope="col">Login</th>
+        <th scope="col">Role</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for user in records%}
+        {% if user.enabled %}
+          <tr>
+        {% else %}
+          <tr class="inactive">
+        {% endif %}
+          <td>{{user.name}}</td>
+          <td><a href="#/users/{{user.login}}">{{user.login}}</a></td>
+          <td>{{user.role}}</td>
+        </tr>
+      {% endfor %}
+
+    </tbody>
+  </table>
+
+  <nav aria-label="Page navigation example">
+    <ul class="pagination">
+      {% if page > 1 -%}
+        <li class="page-item"><a class="page-link" href="#/users/?{{qs('page',page-2)}}">Previous</a></li>
+      {% endif %}
+
+      {% for index in range(0, pages) -%}
+        <li class="page-item
+              {% if index + 1 == page -%}
+                active
+              {%- endif %}">
+          <a class="page-link" href="#/users/?{{qs('page',index)}}">{{index+1}}</a>
+        </li>
+      {%- endfor %}
+
+      {% if page < pages -%}
+        <li class="page-item"><a class="page-link" href="#/users/?{{qs('page',page)}}">Next</a></li>
+      {% endif %}
+    </ul>
+  </nav>
+
+<p>
+{{hits}} Records
+</p>
+
+
+</div>
+
+</div>
+
+
+<!-- Modal -->
+<div class="modal fade"
+      id="new-user-modal"
+      tabindex="-1"
+      aria-labelledby="New User Modal Dialog"
+      aria-hidden="true">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content">
+    </div>
+  </div>
+</div>
+
+
+{% endblock %}
+

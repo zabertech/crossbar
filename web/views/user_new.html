@@ -1,0 +1,96 @@
+<div class="modal-header">
+  <h5 class="modal-title" id="exampleModalLabel">New User Creation</h5>
+  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+<div class="modal-body">
+
+  <form id="form-user-new">
+    <div class="row g-3">
+
+      <div class="mb-3">
+        <label class="form-label">New Username/Login</label>
+        <input type="text"
+                class="form-control"
+                name="login"
+                data-link=""
+                aria-label="login"
+                placeholder="Login"
+                required
+                pattern="[A-Za-z]+"
+                >
+        <div class="invalid-feedback"></div>
+      </div>
+
+      <div class="col-md-6">
+        <input type="text"
+                class="form-control"
+                data-link=""
+                data-link-attribs="{readonly:r.get('source') == 'ldap'}"
+                name="name"
+                aria-label="Name"
+                placeholder="Name">
+      </div>
+
+      <div class="col-md-6">
+        <div class="form-check form-switch">
+          <input class="form-check-input"
+                  name="enabled"
+                  data-link=""
+                  type="checkbox"
+                  id="checkbox-enabled">
+          <label class="form-check-label"
+                  for="checkbox-enabled">Enabled</label>
+        </div>
+      </div>
+
+      <div class="col-md-6">
+        <label class="col-sm-2 col-form-label">UPN</label>
+        <input type="text"
+                class="form-control col-sm-10"
+                name="upn"
+                data-link=""
+                data-link-attribs="{readonly:r.get('source') == 'ldap'}"
+                required
+                aria-label="User Principal Name"
+                placeholder="User Principal Name">
+      </div>
+
+      <div class="col-md-6">
+        <label class="col-sm-2 col-form-label">New&nbsp;Password</label>
+        <input type="password"
+                class="form-control col-sm-10"
+                name="plaintext_password"
+                autocomplete="off"
+                data-link=""
+                data-link-attribs="{readonly:r.get('source') == 'ldap'}"
+                aria-label="New Password"
+                placeholder="New Password"
+                required>
+      </div>
+
+      <div class="col-md-6">
+        <label class="col-sm-2 col-form-label">Auth&nbsp;Source</label>
+        <select name="source" data-link="" class="form-select col-sm-10">
+          <option value="local">Local Datasource</option>
+          <option value="ldap">LDAP Datasource</option>
+        </select>
+      </div>
+
+      <div class="col-md-6">
+        <label class="col-sm-2 col-form-label">Role</label>
+        <select name="role" data-link="" class="form-select col-sm-10">
+          <option value="frontend">Frontend</option>
+          <option value="trust">Trusted</option>
+          <option value="backend">Backend</option>
+        </select>
+      </div>
+
+    </div>
+  </form>
+
+</div>
+<div class="modal-footer">
+  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+  <button type="submit" class="btn btn-primary" >Create</button>
+</div>
+

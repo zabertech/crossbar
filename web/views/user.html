@@ -1,0 +1,87 @@
+{% extends "frame.html" %}
+
+{% block content %}
+<div class="container-lg">
+
+<h1>Manage {{login}}</h1>
+<form id="user-form">
+
+<div class="row g-3">
+
+  <div class="col-md-6">
+    <input type="text"
+            class="form-control"
+            data-link=""
+            data-link-attribs="{readonly:r.get('source') == 'ldap'}"
+            name="name"
+            aria-label="Name"
+            placeholder="Name">
+  </div>
+
+  <div class="col-md-6">
+    <div class="form-check form-switch">
+      <input class="form-check-input"
+              name="enabled"
+              data-link=""
+              type="checkbox"
+              id="checkbox-enabled">
+      <label class="form-check-label"
+              for="checkbox-enabled">Enabled</label>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <label class="col-sm-2 col-form-label">UPN</label>
+    <input type="text"
+            class="form-control col-sm-10"
+            name="upn"
+            data-link=""
+            data-link-attribs="{readonly:r.get('source') == 'ldap'}"
+            aria-label="User Principal Name"
+            placeholder="User Principal Name">
+  </div>
+
+  <div class="col-md-6">
+    <label class="col-sm-2 col-form-label">New&nbsp;Password</label>
+    <input type="password"
+            class="form-control col-sm-10"
+            name="plaintext_password"
+            data-link=""
+            data-link-attribs="{readonly:r.get('source') == 'ldap'}"
+            aria-label="New Password"
+            placeholder="New Password">
+  </div>
+
+  <div class="col-md-6">
+    <label class="col-sm-2 col-form-label">Auth&nbsp;Source</label>
+    <select name="source" data-link="" class="form-select col-sm-10">
+      <option value="local">Local Datasource</option>
+      <option value="ldap">LDAP Datasource</option>
+    </select>
+  </div>
+
+  <div class="col-md-6">
+    <label class="col-sm-2 col-form-label">Role</label>
+    <select name="role" data-link="" class="form-select col-sm-10">
+      <option value="frontend">Frontend</option>
+      <option value="trust">Trusted</option>
+      <option value="backend">Backend</option>
+    </select>
+  </div>
+
+</div>
+
+</form>
+
+<h2 class="mt-4"><i class="bi bi-key"></i> API Keys</h2>
+
+<div class="list-group list-group-flush"
+     id="api-keys"></div>
+
+<h2 class="mt-4"><i class="bi bi-sliders"></i> Metadata</h2>
+
+<div class="list-group list-group-flush"
+     id="metadata"></div>
+
+</div>
+{% endblock %}

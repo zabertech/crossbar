@@ -1,0 +1,11 @@
+default:
+  email:
+      from: test@zaber.com
+      host: localhost
+  nexus: 
+    db:
+      path: 'db'
+    ldap:
+      server:
+        host: file://ldap-mock-data.yaml
+

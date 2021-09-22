@@ -29,7 +29,7 @@ def _is_client_session(session):
     return hasattr(session, '_session_details')
 
 
-class Router(object):
+class RouterBase(object):
     """
     Crossbar.io core router class.
     """
@@ -441,6 +441,104 @@ class Router(object):
         Implements :func:`autobahn.wamp.interfaces.IRouter.validate`
         """
         self.log.debug("Validate '{payload_type}' for '{uri}'", payload_type=payload_type, uri=uri, cb_level="trace")
+
+
+class Router(RouterBase):
+
+    def send(self, session, msg):
+        """ Handles outgoing message
+
+        `session` types observed:
+            crossbar.router.service.RouterServiceAgent
+                (autobahn.twisted.wamp.ApplicationSession)
+            crossbar.edge.node.node.FabricNodeControllerSession
+                (crossbar.node.controller.NodeController)
+                (crossbar.common.process.NativeProcess)
+                (autobahn.twisted.wamp.ApplicationSession)
+
+        `msg` are from autobahn.wamp.message.*
+            autobahn.wamp.message.Registered
+
+        """
+
+        super().send( session, msg )
+
+        # We're only really interested in logging client/server interactions at the moment
+        if   not hasattr(session, '_transport') \
+          or not hasattr(session._transport,'_cbtid') \
+          or not session._transport._cbtid:
+              return
+
+        # What is the size of this particular packet
+        # We do call the serializer code, however this is efficient as crossbar will cache
+        # so either the serialized format already exists or will be used upon send
+        #    session._transport._serializer can be of types:
+        #      - autobahn.wamp.serializer.JsonSerializer
+        #      - autobahn.wamp.serializer.CBORSerializer
+        packet_size = 0
+        try:
+            if msg._serialized:
+                serialized, is_binary = session._transport._serializer.serialize(msg)
+                packet_size = len(serialized)
+        except Exception as ex:
+            self.log.warn(f"Unable to get packet size: {ex}")
+
+        # The cbtid can be used to reference into the nexus cookies for additional information
+        # if required
+        cbtid = session._transport._cbtid
+
+        # Now what sort of message are we dealing with?
+        if isinstance( msg, message.Result ):
+            #self.log.warn(f"SEND RESULT<{cbtid}>")
+            pass
+        elif isinstance( msg, message.Error ):
+            pass
+        elif isinstance( msg, message.Invocation ):
+            pass
+        elif isinstance( msg, message.Registered ):
+            pass
+        elif isinstance( msg, message.Published ):
+            pass
+        elif isinstance( msg, message.Subscribed ):
+            pass
+        else:
+            self.log.warn(f"send<{cbtid}>: {type(msg)}")
+
+    def process(self, session, msg):
+        """ Handles an incoming message
+        """
+        super().process( session, msg )
+
+        # We're only really interested in logging client/server interactions
+        cbtid = None
+        if    hasattr(session, '_transport') \
+          and hasattr(session._transport,'_cbtid') \
+          and session._transport._cbtid:
+              cbtid = session._transport._cbtid
+
+        if isinstance( msg, message.Call ):
+            #self.log.warn(f"CALLING<{cbtid}>: {msg.procedure}")
+            pass
+        elif isinstance( msg, message.Publish ):
+            #self.log.warn(f"PUBLISH<{cbtid}>: {msg.topic}")
+            pass
+        elif isinstance( msg, message.Yield ):
+            pass
+        elif isinstance( msg, message.Register ):
+            pass
+        elif isinstance( msg, message.Subscribe ):
+            pass
+        elif isinstance( msg, message.Publish ):
+            pass
+        else:
+            self.log.warn(f"process<{cbtid}>: {type(msg)}")
+
+    def log_yield(self, yield_, invocation_request, reply ):
+        if isinstance( reply, message.Error ):
+            pass
+        else:
+            pass
+            #self.log.warn(f"YIELD: [{invocation_request.registration.uri}[ {type(invocation_request)} {type(reply)}")
 
 
 # implements IRouterContainer

@@ -1,0 +1,42 @@
+<div class="d-flex w-100 justify-content-between"
+    data-bs-toggle="collapse"
+    data-bs-target="#metadatum-{{uuid}}"
+  >
+  <p class="mb-1 code" data-link-html="r.get('key')"></p>
+</div>
+
+<div class="collapse metadatum-details" id="metadatum-{{uuid}}">
+
+  <div class="row g-3 py-2 px-3">
+    <div class="col-md-12">
+      <input type="text"
+              class="form-control"
+              name="key"
+              data-link=""
+              aria-label="Preference Key"
+              placeholder="Preference Key">
+    </div>
+
+    <div class="col-md-12">
+      <p>YAML value</p>
+      <div class="ace-editor-container">
+        <div class="ace-editor" id="value-{{uuid}}"></div>
+      </div>
+    </div>
+
+  </div>
+
+
+  <div class="g-3 py-2 px-3">
+    <button class="btn btn-danger btn-sm delete-button">
+      <i class="bi bi-trash"></i> Delete Preference
+    </button>
+    <button class="btn btn-primary btn-sm"
+            data-bs-toggle="collapse"
+            data-bs-target="#metadatum-{{uuid}}"
+            >
+      <i class="bi bi-arrow-bar-up"></i> Done Editing
+    </button>
+  </div>
+
+</div>

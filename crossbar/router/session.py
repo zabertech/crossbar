@@ -341,7 +341,7 @@ class RouterApplicationSession(object):
             raise Exception("RouterApplicationSession.send: unhandled message {0}".format(msg))
 
 
-class RouterSession(BaseSession):
+class RouterSessionBase(BaseSession):
     """
     WAMP router session. This class implements :class:`autobahn.wamp.interfaces.ITransportHandler`.
     """
@@ -355,7 +355,7 @@ class RouterSession(BaseSession):
             the :class:`crossbar.router.session.RouterSessionFactory` stored in ``self.factory``.
         :type router_factory: Instance of :class:`crossbar.router.router.RouterFactory`.
         """
-        super(RouterSession, self).__init__()
+        super(RouterSessionBase, self).__init__()
         self._transport = None
 
         # self._router_factory._node_id
@@ -1113,6 +1113,61 @@ class RouterSession(BaseSession):
                 for proto in cs.getProtos(self._transport._cbtid):
                     proto.sendClose()
 
+from izaber import initialize, config
+from nexus.domain import controller, db
+
+class RouterSession(RouterSessionBase):
+
+    def onJoin(self, details):
+        """ Called after WAMP Welcome message has been sent
+        """
+        res = super().onJoin(details)
+        return res
+
+    def onOpen(self, transport):
+        super().onOpen(transport)
+        try:
+            self._cbtid = transport._cbtid
+        except:
+            self._cbtid = None
+
+    def onLeave(self, details):
+        # We want to mark a nexus  mtime at the departure of a sesson
+        super().onLeave(details)
+
+        # Ignore system sessions
+        if self.authprovider == "programcode":
+            return
+
+        '''
+        # We should always have authextra but we'll just log a message
+        # here just in case
+        if not self._authextra:
+            log.warning(f"onLeave without authextra called. {details}")
+            return
+
+
+        if not self._authextra.get('cache_id'):
+            log.warning(f"onLeave without cache_id called. {details}")
+            return
+
+        '''
+
+        if not self._cbtid:
+            return
+
+        # If we have a cbtid, it means that there's an associated cookie
+        # or some sort of persistant state store.
+        cookie_obj = db.cookies[self._cbtid]
+        if not cookie_obj:
+            self.log.warning(f"onLeave detected cookie but no cookie found.")
+            session_obj.delete_()
+            return
+
+    def close(self):
+        res = super().self()
+        return res
+
 
 ITransportHandler.register(RouterSession)
 
@@ -1201,3 +1256,6 @@ class RouterSessionFactory(object):
         session = self.session(self._routerFactory)
         session.factory = self
         return session
+
+
+initialize('crossbar-server')

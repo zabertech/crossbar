@@ -1,0 +1,92 @@
+<a 
+    data-bs-toggle="collapse"
+    data-bs-target="#details-{{uuid}}"
+    class="list-group-item-action api-key-row text-decoration-none cursor-pointer"
+    >
+  <div class="d-flex w-100 justify-content-between">
+    <p class="mb-1" data-link-html="r.get('description') || 'Unnamed Key'"></p>
+    <small>
+      <i class="bi bi-key"
+          data-link-css="{'d-none': !r.get('plaintext_key')}"
+          title="Has plaintext key"></i>
+      <i class="bi bi-shield-slash"
+          data-link-css="{'d-none': r.get('permissions').length}"
+          title="Unrestricted dev key"></i>
+      <i class="bi bi-hourglass-split"
+          data-link-css="{'d-none': !r.get('expires')}"
+          title="Expiry date set"></i>
+    </small>
+  </div>
+</a>
+
+<div class="collapse api-key-details" id="details-{{uuid}}">
+
+  <div class="row g-3 py-2 px-3">
+
+    <div class="col-md-12">
+      <input type="text"
+              class="form-control"
+              name="description"
+              data-link=""
+              aria-label="Description"
+              placeholder="Description">
+    </div>
+
+    <div class="col-md-12">
+      <div class="input-group">
+        <input type="text"
+                class="form-control col-sm-10"
+                id="user-{{uuid}}-plaintext_key"
+                data-link=""
+                name="plaintext_key"
+                aria-label="Plaintext Key"
+                placeholder="Plaintext Key"
+                readonly
+                >
+        <button type="button"
+                data-copy-target="user-{{uuid}}-plaintext_key"
+                onclick="copyInput(this)"
+                class="btn btn-secondary">
+          <i class="bi bi-clipboard-plus"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <input type="text"
+              id="input-{{uuid}}-expires"
+              class="form-control datepicker"
+              data-link=""
+              name="expires"
+              aria-label="Expiry"
+              placeholder="Expiry Date">
+    </div>
+
+  </div>
+
+  <div class="table-responsive px-3" id="api-key-permissions-{{uuid}}"></div>
+
+  <div class="g-3 py-2 px-3">
+    <button class="btn btn-danger btn-sm delete-button">
+      <i class="bi bi-trash"></i> Delete API Key
+    </button>
+    <button class="btn btn-primary btn-sm"
+            data-bs-toggle="collapse"
+            data-bs-target="#details-{{uuid}}"
+            >
+      <i class="bi bi-arrow-bar-up"></i> Done Editing
+    </button>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade"
+      id="perm-modal-{{uuid}}"
+      tabindex="-1"
+      aria-labelledby="Modal Dialog"
+      aria-hidden="true">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content"></div>
+  </div>
+</div>
+

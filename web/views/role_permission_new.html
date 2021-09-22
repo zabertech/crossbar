@@ -1,0 +1,156 @@
+<div class="modal-header">
+  <h5 class="modal-title" id="exampleModalLabel">URI Permission</h5>
+  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+<div class="modal-body">
+
+  <form id="form-permissions">
+    <input type="hidden" name="id">
+
+    <div class="row g-3">
+
+      <div class="mb-3">
+        <label class="form-label">URI Pattern</label>
+        <input type="text"
+                class="form-control"
+                name="uri"
+                data-link=""
+                aria-label="URI"
+                placeholder="URI">
+      </div>
+
+      <div class="mb-3">
+        <p>Allow calling to matched URI</p>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input"
+                  type="radio"
+                  name="call"
+                  data-link=""
+                  id="call-deny"
+                  value="0">
+          <label class="form-check-label" for="call-deny">Deny</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input"
+                  type="radio"
+                  name="call"
+                  data-link=""
+                  id="call-allow"
+                  value="1">
+          <label class="form-check-label" for="call-allow">Allow</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input"
+                  type="radio"
+                  name="call"
+                  data-link=""
+                  id="call-elevated"
+                  value="-1">
+          <label class="form-check-label" for="call-elevated">
+                  Require Elevated Authentication</label>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <p>Allow registering to matched URI</p>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input"
+                  type="radio"
+                  data-link=""
+                  name="register"
+                  id="register-deny"
+                  value="0">
+          <label class="form-check-label" for="register-deny">Deny</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input"
+                  type="radio"
+                  data-link=""
+                  name="register"
+                  id="register-allow"
+                  value="1">
+          <label class="form-check-label" for="register-allow">Allow</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input"
+                  type="radio"
+                  data-link=""
+                  name="register"
+                  id="register-elevated"
+                  value="-1">
+          <label class="form-check-label" for="register-elevated">Require Elevated Authentication</label>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <p>Allow subscribing to matched URI</p>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input"
+                  type="radio"
+                  data-link=""
+                  name="subscribe"
+                  id="subscribe-deny"
+                  value="0">
+          <label class="form-check-label" for="subscribe-deny">Deny</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input"
+                  type="radio"
+                  data-link=""
+                  name="subscribe"
+                  id="subscribe-allow"
+                  value="1">
+          <label class="form-check-label" for="subscribe-allow">Allow</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input"
+                  type="radio"
+                  data-link=""
+                  name="subscribe"
+                  id="subscribe-elevated"
+                  value="-1">
+          <label class="form-check-label" for="subscribe-elevated">Require Elevated Authentication</label>
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <p>Allow publishing to matched URI</p>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input"
+                  type="radio"
+                  data-link=""
+                  name="publish"
+                  id="publish-deny"
+                  value="0">
+          <label class="form-check-label" for="publish-deny">Deny</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input"
+                  type="radio"
+                  data-link=""
+                  name="publish"
+                  id="publish-allow"
+                  value="1">
+          <label class="form-check-label" for="publish-allow">Allow</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input"
+                  type="radio"
+                  data-link=""
+                  name="publish"
+                  id="publish-elevated"
+                  value="-1">
+          <label class="form-check-label" for="publish-elevated">Require Elevated Authentication</label>
+        </div>
+      </div>
+
+    </div>
+
+  </form>
+
+</div>
+<div class="modal-footer">
+  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+  <button type="submit" class="btn btn-primary" >Create</button>
+</div>
+

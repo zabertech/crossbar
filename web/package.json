@@ -1,0 +1,40 @@
+{
+  "name": "izaber-package",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "webpack --mode production",
+    "dev": "webpack --mode development"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@riotjs/route": "^7.0.0",
+    "autobahn-browser": "^20.9.2",
+    "flatpickr": "^4.6.9",
+    "jquery": "^3.3.1",
+    "js-cookie": "^2.2.0",
+    "js-yaml": "^4.0.0",
+    "mc-datepicker": "^0.3.1",
+    "msgpack5": "^4.5.1",
+    "nunjucks": "^3.1.3",
+    "popper.js": "^1.14.3",
+    "raw-loader": "^4.0.2",
+    "riot": "^5.3.1",
+    "url": "^0.11.0"
+  },
+  "devDependencies": {
+    "css-loader": "^5.1.2",
+    "file-loader": "^6.2.0",
+    "font-awesome-loader": "^1.0.2",
+    "postcss-loader": "^5.2.0",
+    "sass": "^1.32.8",
+    "sass-loader": "^11.0.1",
+    "style-loader": "^2.0.0",
+    "url-loader": "^4.1.1",
+    "webpack": "^5.28.0",
+    "webpack-cli": "^4.5.0"
+  }
+}
