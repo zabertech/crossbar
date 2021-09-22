@@ -1,0 +1,21 @@
+image: docker:19.03.1
+services:
+  - docker:19.03.1-dind
+
+docker-build:
+  tags:
+    - docker
+    - dind
+    - build
+  only:
+    - tags
+  variables:
+    IMAGE_NAME: $CI_REGISTRY_IMAGE:$CI_COMMIT_TAG
+    RELEASE_IMAGE_NAME: $CI_REGISTRY_IMAGE:latest
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker build -t $IMAGE_NAME .
+    - docker push $IMAGE_NAME
+    - docker build -t $RELEASE_IMAGE_NAME .
+    - docker push $RELEASE_IMAGE_NAME
+
