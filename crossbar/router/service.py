@@ -974,3 +974,95 @@ class RouterServiceAgent(ApplicationSession):
         :rtype: bool or None
         """
         raise Exception('not implemented')
+
+
+
+    @wamp.register('com.izaber.wamp.system.registrations.list')
+    def nexus_registration_list(self, session_id=None, details=None):
+        """
+        List current registrations.
+
+        :returns: A dictionary with three entries for the match policies 'exact', 'prefix'
+            and 'wildcard', with a list of registration IDs for each.
+        :rtype: dict
+        """
+
+        def reg_rec(registration):
+
+            # Find out who is connected and servicing this registration
+            sessions = []
+            for callee in registration.observers:
+                session_id = callee._session_id
+                session_info = {}
+
+                # Build the `session_info` dict that will hold the relevant
+                # information about the 
+                session = self._router._session_id_to_session[session_id]
+                try:
+                    session_info.update(session._session_details.marshal())
+                except:
+                    pass
+
+                try:
+                    transport_info = session._transport._transport_info
+                    if transport_info or session_info:
+                        session_info['transport'] = transport_info
+                    else:
+                        continue
+                except:
+                    if not session_info:
+                        continue
+                    session_info['transport'] = None
+
+                sessions.append(session_info)
+
+            registration_details = {
+                'id': registration.id,
+                'created': registration.created,
+                'uri': registration.uri,
+                'match': registration.match,
+                'invoke': registration.extra.invoke,
+                'sessions': sessions,
+            }
+            return registration_details
+
+
+        if session_id:
+
+            s2r = self._router._dealer._session_to_registrations
+            session = None
+
+            if session_id in self._router._session_id_to_session:
+                session = self._router._session_id_to_session[session_id]
+                if is_restricted_session(session):
+                    session = None
+
+            if not session or session not in s2r:
+                raise ApplicationError(
+                    ApplicationError.NO_SUCH_SESSION,
+                    'no session with ID {} exists on this router'.format(session_id),
+                )
+
+            _regs = s2r[session]
+            registrations = [reg_rec(reg) for reg in _regs]
+            return registrations
+
+        else:
+
+            registration_map = self._router._dealer._registration_map
+
+            registrations = []
+
+            for registration in registration_map._observations_exact.values():
+                if not is_protected_uri(registration.uri, details):
+                    registrations.append(reg_rec(registration))
+
+            for registration in registration_map._observations_prefix.values():
+                if not is_protected_uri(registration.uri, details):
+                    registrations.append(reg_rec(registration))
+
+            for registration in registration_map._observations_wildcard.values():
+                if not is_protected_uri(registration.uri, details):
+                    registrations.append(reg_rec(registration))
+
+            return registrations

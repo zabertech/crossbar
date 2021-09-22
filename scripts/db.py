@@ -8,7 +8,7 @@ import pathlib
 dir_path = os.path.dirname(os.path.realpath(__file__))
 cwd = pathlib.Path(os.getcwd())
 os.chdir(dir_path)
-sys.path.insert(1, f"{dir_path}/../lib")
+sys.path.insert(1, f"{dir_path}/..")
 
 __doc__ = f"""
 Usage:

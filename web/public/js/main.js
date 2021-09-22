@@ -1530,7 +1530,22 @@ roleDetailedStream.on.value(async url=> {
  ******************************************************************/
 const mainStream = route('/main')
 mainStream.on.value(() => {
-  render('main.html', {}, 'body');
+  call('.system.registrations.list', []).then(
+    res => {
+      res.sort((a, b) => (a.uri > b.uri) ? 1 : -1);
+      render(
+        'main.html',
+        {
+          'registrations': res,
+        },
+        'body'
+      );
+    },
+    err => {
+      console.log("OOPS", err)
+      render('main.html', {}, 'body');
+    }
+  )
 });
 
 
