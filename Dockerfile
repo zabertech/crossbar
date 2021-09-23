@@ -27,20 +27,18 @@ RUN groupadd -g 1000 zaber \
 
 COPY --chown=zaber:zaber . /app
 
-# RUN mkdir -p /logs \
-#     && rm -rf /data \
-#     && rm -rf /app/nexus/web/node_modules \
-#     && rm -rf /app/nexus/data/cookies.dat \
-#     && rm -rf /app/nexus/data/db \
-#     && rm -rf /app/nexus/.git \
-#     && mv /app/nexus/data /data \
-#     && rm -rf /app/nexus/logs \
-#     && ln -sf /logs /app/nexus/logs \
-#     && ln -sf /data /app/nexus/data \
-#     && rm -f /data/config.yaml \
-#     && cp -af /data/config.yaml.example /data/config.yaml
-# 
-#COPY --chown=zaber:zaber tmux.conf /home/zaber/.tmux.conf
+RUN mkdir -p /logs \
+    && rm -rf /data \
+    && rm -rf /app/web/node_modules \
+    && rm -rf /app/data/cookies.dat \
+    && rm -rf /app/data/db \
+    && rm -rf /app/.git \
+    && mv /app/data /data \
+    && rm -rf /app/logs \
+    && ln -sf /logs /app/logs \
+    && ln -sf /data /app/data \
+    && rm -f /data/config.yaml \
+    && cp -af /data/config.yaml.example /data/config.yaml
 
 USER zaber
 WORKDIR /app
@@ -48,7 +46,7 @@ WORKDIR /app
 RUN poetry run poetry install
 
 ENTRYPOINT []
-CMD /app/nexus/run-server.sh
+CMD /app/run-server.sh
 
 
 
