@@ -8,7 +8,7 @@
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
 CBDIR=${CBDIR:="$SCRIPT_DIR/data"}
-LOG_LEVEL=${LOG_LEVEL:=debug}
+LOG_LEVEL=${LOG_LEVEL:=warning}
 LOG_COLOURS=${LOG_COLOURS:=true}
 LOG_FORMAT=${LOG_FORMAT:=standard}
 

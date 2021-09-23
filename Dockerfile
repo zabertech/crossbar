@@ -48,7 +48,7 @@ WORKDIR /app
 RUN poetry run poetry install
 
 ENTRYPOINT []
-#CMD /app/nexus/run-server.sh
+CMD /app/nexus/run-server.sh
 
 
 
