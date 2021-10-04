@@ -10,6 +10,7 @@ from nexus.orm import *
 from nexus.domain.db.users import NexusUsers
 from nexus.domain.db.roles import NexusRoles
 from nexus.domain.db.cookies import NexusCookies
+from nexus.domain.db.registrations import NexusRegistrations
 
 log = logging.getLogger('nexus-db')
 
@@ -22,6 +23,7 @@ class DB(NexusDB):
         'users': NexusUsers,
         'roles': NexusRoles,
         'cookies': NexusCookies,
+        'registrations': NexusRegistrations,
     }
 
 ##################################################################

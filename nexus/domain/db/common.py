@@ -17,6 +17,7 @@ from nexus.orm import NexusRecord, NexusCollection
 class _AuthorizedNexusCollection(NexusCollection):
     _role_permissions = {
         'trust': True,
+        'trusted': True,
         '%default': False,
     }
 

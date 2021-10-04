@@ -173,6 +173,7 @@ function connect( login, password ) {
           case 'public':
             return loginPunt();
           case 'trust':
+          case 'trusted':
             isTrusted = true;
             break;
           default:
@@ -1247,6 +1248,57 @@ class NexusRole extends DataComponent {
 
 
 /*******************************************************************
+ * NexusRegistration
+ ******************************************************************/
+
+class NexusRegistration extends DataComponent {
+  constructor (opts) {
+    opts.template ||= 'registration.html'
+    opts.target ||= 'body';
+    super(opts);
+  }
+
+
+  get description() {
+    return this.get('description')
+  }
+
+  set(k, v) {
+  // --------------------------------------------------
+    console.log("TRYING TO SAVE:", this.uuid);
+    session.call(WPREFIX+'.system.db.update', [
+        [ this.uuid ],
+        {[k]:v}
+    ]).then(
+      updated=>{
+        if ( updated ) { super.set(k, v); }
+      },
+      err=>{
+        generalErrorMessage('Failed Saving', err.args[0]);
+        throw err.args[0];
+      }
+    );
+  }
+
+
+  render() {
+    let targetElement = super.render();
+    const editor = this.editor = ace.edit(`description-${this.uuid}`);
+    editor.setTheme("ace/theme/clouds");
+    editor.session.setMode("ace/mode/yaml");
+    editor.on('blur', ()=> {
+      const val = editor.getSession().getValue();
+      // validate the data
+      this.set('description', val);
+    });
+
+    editor.setValue(this.description);
+    editor.clearSelection();
+  }
+};
+
+
+/*******************************************************************
  * Login Page
  ******************************************************************/
 // create a route stream
@@ -1526,26 +1578,151 @@ roleDetailedStream.on.value(async url=> {
 })
 
 /*******************************************************************
+ * Registrations List
+ ******************************************************************/
+async function updateRegistrationsList(q) {
+// This will be invoked whenver a new dataset is required from the 
+// db search
+//
+// Arguments:
+//    - q: string query
+//    - page: int page
+//    - enabled: bool
+//    - limit: int max size of page
+// 
+  startLoader();
+
+  let conditions = []
+  if ( q.has('q') ) {
+    let query = q.get('q')
+    conditions.push([
+      'OR', [
+        ['uri', 'ilike', query],
+        ['peer', 'ilike', query],
+        ['authid', 'ilike', query],
+        ['description', 'ilike', query],
+      ]])
+  }
+
+  if ( q.has('system') && q.get('system') ) {
+    q.set('system', 1);
+  }
+  else {
+    conditions.push([ 'system', '=', false ])
+  }
+
+  let page_index = parseInt(q.get('page') || 0)
+  let limit = parseInt(q.get('limit') || 20)
+
+  // qs = query string
+  let qs = (k, v) => {
+                      let nq = new URLSearchParams(q.toString());
+                      nq.set(k, v);
+                      return nq.toString();
+                  };
+
+  // s = sort
+  let sort = ['uri','asc'];
+  if ( q.get('s') ) {
+    let ks = q.get('s').split(':')
+    sort = [ks[0], ks[1]]
+  }
+
+  try {
+    let result = await call('.system.db.query',
+                              ['registrations', conditions],
+                              {
+                                'sort': [sort],
+                                'limit': limit,
+                                'page_index': page_index,
+                              }
+                            );
+    result.qs = qs;
+    result.sortKey = sort[0];
+    result.sortOrder = sort[1];
+    let targetElement = render('registrations.html', result);
+
+    // Attach events to the form elements for searching
+    let filterSystem = targetElement.querySelector('#filter-system');
+    if ( q.get('system') ) {
+      filterSystem.checked = true;
+    }
+    filterSystem.addEventListener(
+        'change', ev => {
+            q.set('system', ev.currentTarget.checked ? '1' : '');
+            updateRegistrationsList(q);
+        }
+    );
+
+    // Attach events to the search input
+    let filterQuery = targetElement.querySelector('#filter-query');
+    filterQuery.addEventListener(
+        'change', ev => {
+            q.set('q', ev.currentTarget.value );
+            updateRegistrationsList(q);
+        }
+    );
+    filterQuery.focus();
+    if ( q.get('q') ) {
+        filterQuery.value = q.get('q');
+    }
+
+  }
+  catch (err) {
+    console.log("Registrations query raise exception:", err);
+  }
+
+  endLoader();
+}
+
+
+const registrationsStream = route('/registrations(.*)')
+registrationsStream.on.value(async (ev) => {
+  await updateRegistrationsList(ev.searchParams);
+});
+
+
+/*******************************************************************
+ * Registration Edit
+ ******************************************************************/
+const registrationDetailedStream = route('/registrations/:key')
+var registrationComponent = null;
+registrationDetailedStream.on.value(url=> {
+  startLoader();
+
+  const key = url.params.key;
+  session.call(
+          'com.izaber.wamp.system.db.query',
+          [
+              'registrations',
+              [['key','=',key]]
+          ],
+          {'yaml':true}
+      ).then(
+          res=>{
+            if ( res['hits'] == 0 ) {
+                throw 'MissingResult';
+            }
+            let registration = res['records'][0];
+            registrationComponent = new NexusRegistration({ data: registration });
+            registrationComponent.render();
+            endLoader()
+          },
+          err=>{
+            console.log("Unable to get registrations!", err)
+            endLoader();
+          },
+  );
+})
+
+
+
+/*******************************************************************
  * Main Page
  ******************************************************************/
 const mainStream = route('/main')
 mainStream.on.value(() => {
-  call('.system.registrations.list', []).then(
-    res => {
-      res.sort((a, b) => (a.uri > b.uri) ? 1 : -1);
-      render(
-        'main.html',
-        {
-          'registrations': res,
-        },
-        'body'
-      );
-    },
-    err => {
-      console.log("OOPS", err)
-      render('main.html', {}, 'body');
-    }
-  )
+  render('main.html', {}, 'body');
 });
 
 

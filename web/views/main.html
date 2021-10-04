@@ -5,36 +5,5 @@
   <h1 class="ui center aligned icon header" style="padding: 1em 0 0 0;">
     Nexus WAMP server
   </h1>
-
-
-  <h4 class="ui center aligned header">Current Registrations</h4>
-
-  Show System
-
-  <table class="table" id="registrations">
-    <thead>
-      <tr>
-        <th scope="col">URI</th>
-        <th scope="col">Match Policy</th>
-        <th scope="col">Created</th>
-        <th scope="col">Sessions</th>
-      </tr>
-    </thead>
-    <tbody>
-    {% for reg in registrations %}
-      <tr>
-        <td>{{reg.uri}}</td>
-        <td>{{reg.match}}</td>
-        <td>{{reg.created}}</td>
-        <td>
-          {% for sess in reg.sessions %}
-            {{sess.authid}}@{{sess.transport.peer}}
-          {% endfor %}
-        </td>
-      </tr>
-    {% endfor %}
-    </tbody>
-  </div>
-
 </div>
 {% endblock %}

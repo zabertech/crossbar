@@ -19,6 +19,7 @@ from nexus.component.base import *
 
 import time
 import schedule
+import hashlib
 
 from izaber import initialize, config
 
@@ -27,21 +28,24 @@ from nexus.orm import *
 from nexus.domain import *
 from nexus.cron import cron
 
-from twisted.internet.defer import inlineCallbacks
+from twisted.internet.defer import inlineCallbacks, DeferredList
 from autobahn.wamp.exception import ApplicationError
 
+# FIXME: Eventually this should be a part of the role record
 def is_trusted(details):
-    if details.caller_authrole == 'trust':
+    if details.caller_authrole in('trusted','trust'):
         return True
     return False
 
 SESSIONS = {}
+REGISTRATIONS = {}
 
 class DomainComponent(BaseComponent):
     last_sync = None
 
     #############################################################################
     # Session Tracking
+    # See: https://github.com/wamp-proto/wamp-proto/blob/master/rfc/text/advanced/ap_session_meta_api.md
     #############################################################################
     @wamp_subscribe('wamp.session.on_join')
     def session_on_join(self, session_details, details):
@@ -285,6 +289,130 @@ class DomainComponent(BaseComponent):
             'authid': details.caller_authid,
             'role': details.caller_authrole,
         }
+
+    #############################################################################
+    # Registration Tracking
+    # See: https://github.com/wamp-proto/wamp-proto/blob/master/rfc/text/advanced/ap_rpc_registration_meta_api.md
+    #############################################################################
+    @wamp_subscribe('wamp.registration.on_register')
+    def registration_on_register(self, session_id, registration_id, details=None ):
+        """ When we get a notification for a new registration, we want to log
+            its existance in the database along with tracking metadata such as
+            source and connection times
+        """
+
+        try:
+            def on_register_data( reg_data ):
+                # sess_data = {
+                #    'id': 1979701189101083,
+                #    'created': '2021-09-26T16:32:22.704Z',
+                #    'uri': 'com.izaber.wamp.my.apikeys.delete',
+                #    'match': 'exact',
+                #    'invoke': 'single'
+                # }
+
+                # Start the new record off
+                uri = reg_data['uri']
+                match = reg_data['match']
+                invoke = reg_data['invoke']
+
+                # We make a key of the record mixing both uri and
+                # match type
+                key_hash = hashlib.md5(f"{match}:{uri}".encode("utf-8")).hexdigest()
+
+                self.log.warn(f"REG: {registration_id}:{key_hash}")
+
+                # Get some information on the session if possible which allows us
+                # to set information like where the connection last came from
+                sess_rec = None
+                peer = None
+                authid = None
+                if session_id and session_id in SESSIONS:
+                    sess_rec = SESSIONS[session_id]
+                    details = sess_rec.get('details',{})
+                    peer = details.get('transport',{}).get('peer','')
+                    authid = details.get('authid','')
+
+                # Does this already exist in the database?
+                REGISTRATIONS[registration_id] = key_hash
+
+                reg_rec = db.registrations.get_(key_hash)
+                if reg_rec:
+                    reg_rec.active = True
+                    reg_rec.create = reg_data['created']
+                    reg_rec.system = not sess_rec # system/trusted have no info so we cheat
+                    reg_rec.peer = peer
+                    reg_rec.authid = authid
+                    reg_rec.save_()
+
+                else:
+                    registration_rec = {
+                        'key': key_hash,
+                        'uri': uri,
+                        'match': match,
+                        'invoke': invoke,
+                        'active': True,
+                        'create': reg_data['created'],
+                        'system': not sess_rec, # system/trusted have no info so we cheat
+                        'peer': peer,
+                        'authid': authid,
+                    }
+                    reg_rec = db.registrations.create_(registration_rec)
+                self.log.warn(f"REGREC: {reg_rec}")
+
+            self.call('wamp.registration.get', registration_id)\
+                .addCallback(on_register_data)
+
+        except Exception as ex:
+            self.log.error(f"ERROR in nexus' registration_on_register: {ex}")
+
+    @wamp_subscribe('wamp.registration.on_unregister')
+    def registration_on_unregister(self, session_id, registration_id, details=None ):
+        """ We don't do anything right now since we don't actually get the session
+            id most of the time
+        """
+        pass
+
+
+    @wamp_subscribe('wamp.registration.on_delete')
+    def registration_on_delete(self, session_id, registration_id, details=None ):
+        """ This is invoked when the last session attached to this registration is removed
+            effectively making the uri no longer valid. We hook this so we can note
+            when the registration was last connected
+        """
+        try:
+            # There is a good chance that the session_id is null since the
+            # unregister may have triggered as of the result of a disconnect
+            # We're not going to worry about it for now and care more about the
+            # registration instead
+            if not registration_id:
+                return
+
+            # Figure out our internal record for the registered URI
+            key_hash = REGISTRATIONS.get(registration_id)
+            self.log.warn(f"REGDEL: {registration_id}:{key_hash}")
+            reg_rec = db.registrations[key_hash]
+
+            # Mark this registration as dead
+            reg_rec.active = False
+
+            # Record the changes
+            reg_rec.save_()
+        except Exception as ex:
+            self.log.error(f"ERROR in nexus' registration_on_delete: {ex}")
+
+
+    #############################################################################
+    # Subscription Tracking
+    # See: https://github.com/wamp-proto/wamp-proto/blob/master/rfc/text/advanced/ap_pubsub_subscription_meta_api.md
+    #############################################################################
+    @wamp_subscribe('wamp.subscription.on_subscribe')
+    def subscription_on_subscribe(self, session_id, options=None, details=None):
+        pass
+
+    @wamp_subscribe('wamp.subscription.on_delete')
+    def subscription_on_delete(self, session_id, details):
+        pass
 
     #############################################################################
     # ORM

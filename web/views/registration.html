@@ -1,0 +1,84 @@
+{% extends "frame.html" %}
+
+{% block content %}
+<div class="container-lg">
+
+<h1>Review {{uri}}</h1>
+
+<form id="registration-form">
+
+<div class="row g-3">
+
+  <div class="col-md-6">
+    <label class="form-check-label" for="match-policy">Match Policy</label>
+    <input type="text"
+            class="form-control"
+            data-link=""
+            id="match-policy"
+            name="match"
+            readonly="readonly"
+            aria-label="Match"
+            placeholder="Match Policy">
+  </div>
+
+
+</div>
+
+
+<div class="row g-3">
+
+  <div class="col-md-6">
+    <input class="form-check-input"
+            name="system"
+            data-link=""
+            type="checkbox"
+            readonly="readonly"
+            id="checkbox-system">
+    <label class="form-check-label"
+            for="checkbox-system">System URI</label>
+  </div>
+</div>
+
+
+<h2 class="mt-4"><i class="bi bi-clock-history"></i> Status</h2>
+
+<div class="card">
+  <div class="card-body">
+    <h5 class="card-title">
+    {% if active %}
+      <i class="bi bi-wifi"></i> Connected
+      <h6 class="card-subtitle mb-2 text-muted">Connected since {{create}} from {{peer}}</h6>
+    {% else %}
+      <i class="bi bi-wifi-off"></i> Disconnected
+      <h6 class="card-subtitle mb-2 text-muted">Last Connection {{create}} from {{peer}}</h6>
+    {% endif %}
+    </h5>
+  </div>
+</div>
+
+<h2 class="mt-4"><i class="bi bi-question-circle"></i> Description</h2>
+
+<div class="row g-3 py-2 px-3">
+  <div class="col-md-12">
+    <div class="ace-editor-container">
+      <div class="ace-editor" id="description-{{uuid}}"></div>
+    </div>
+  </div>
+</div>
+
+
+</form>
+
+<!-- Modal -->
+<div class="modal fade"
+      id="role-modal"
+      tabindex="-1"
+      aria-labelledby="Modal Dialog"
+      aria-hidden="true">
+  <div class="modal-dialog modal-xl">
+    <div class="modal-content"></div>
+  </div>
+</div>
+
+{% endblock %}
+

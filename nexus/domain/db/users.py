@@ -25,7 +25,8 @@ enabled: True
 
 # What role should be assigned to the user upon login
 # by default we have been using "frontend". Can also be "backend"
-# or "trust"
+# "trust", or "trusted". Note that usually "trust" would be preferred
+# as "trusted" comes with some annoying constraints within crossbar
 role: null
 
 # What is the principle source of user metadata. Can be "ldap" to
@@ -97,6 +98,7 @@ class NexusUser(NexusRecord):
 class NexusUsers(_AuthorizedNexusCollection):
     _role_permissions = {
         'trust': True,
+        'trusted': True,
         '%default': {
             'query':  authorize_owned_query('uuid'),
             'update': authorize_owned_update('uuid',

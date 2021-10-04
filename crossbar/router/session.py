@@ -1146,7 +1146,6 @@ class RouterSession(RouterSessionBase):
             log.warning(f"onLeave without authextra called. {details}")
             return
 
-
         if not self._authextra.get('cache_id'):
             log.warning(f"onLeave without cache_id called. {details}")
             return

@@ -138,10 +138,10 @@ workers:
   components:
   - classname: nexus.component.domain.DomainComponent
     realm: izaber
-    role: trust
+    role: trusted
     type: class
   - classname: nexus.component.utils.UtilitiesComponent
     realm: izaber
-    role: trust
+    role: trusted
     type: class
 

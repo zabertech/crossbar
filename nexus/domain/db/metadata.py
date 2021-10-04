@@ -47,6 +47,7 @@ class NexusMetadata(_AuthorizedNexusCollection):
     _record_class = NexusMetadatum
     _role_permissions = {
         'trust': True,
+        'trusted': True,
         '%default': {
             'query':  authorize_owned_query('owner'),
             'update': authorize_owned_update('owner'),

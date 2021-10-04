@@ -977,7 +977,7 @@ class RouterServiceAgent(ApplicationSession):
 
 
 
-    @wamp.register('com.izaber.wamp.system.registrations.list')
+    @wamp.register('com.izaber.wamp.system.state.registrations.list')
     def nexus_registration_list(self, session_id=None, details=None):
         """
         List current registrations.
@@ -1025,7 +1025,6 @@ class RouterServiceAgent(ApplicationSession):
                 'sessions': sessions,
             }
             return registration_details
-
 
         if session_id:
 

@@ -514,13 +514,14 @@ class NexusDB:
                 # If not a symlink we should warn the user, there
                 # should only be symlinks in the uuid index
                 if not fpath.is_symlink():
-                    log.warning(f"UUID:{uuid} index {fpath} is not a symlink!")
+                    log.warning(f"UUID:{uuid} index {fpath} target '{target_fpath}' is not a symlink!")
                     results['errors'].append(['UUID_NOT_SYMLINK', uuid])
                     continue
 
                 # Check if the symlink target exists
                 if not fpath.exists():
-                    log.warning(f"UUID:{uuid} index {fpath} symlink target does not exist!")
+                    target_fpath = os.readlink(fpath)
+                    log.warning(f"UUID:{uuid} index {fpath} symlink target to '{target_fpath}' does not exist!")
                     results['warnings'].append(['UUID_TARGET_NO_EXISTS', uuid])
                     results['actions'].append([ 'REMOVE', uuid, str(fpath.resolve()) ])
                     fpath.unlink()

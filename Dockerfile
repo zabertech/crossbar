@@ -16,6 +16,7 @@ RUN groupadd -g 1000 zaber \
                libldap2-dev \
                libgirepository1.0-dev \
                libssl-dev \
+               rng-tools \
                vim-nox \
                gnupg \
     && rm -rf ~/.cache \
