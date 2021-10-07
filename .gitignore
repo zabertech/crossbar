@@ -173,3 +173,6 @@ nginx-ssl-izaber-bundle.crt
 nginx-ssl-izaber.key
 
 data/dhparam4096.pem
+tests/data/ldap-mock-data.yaml
+
+data/izaber.yaml

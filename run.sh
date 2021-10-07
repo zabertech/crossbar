@@ -5,7 +5,7 @@
 
 IMAGE_NAME=${IMAGE_NAME:=izaber/nexus}
 CONTAINER_NAME=${CONTAINER_NAME:=nexus}
-CBDIR=${CBDIR:=/app/nexus/data}
+CBDIR=${CBDIR:=/app/data}
 LOG_LEVEL=${LOG_LEVEL:=debug}
 LOG_COLOURS=${LOG_COLOURS:=true}
 LOG_FORMAT=${LOG_FORMAT:=standard}
@@ -71,15 +71,15 @@ upsert_docker_image () {
 }
 
 prepare_environment () {
-  if [ ! -f data/config.yaml ]; then
+  if [ ! -f data/izaber.yaml ]; then
     echo "Copying over data/config.yaml.example to data/config.yaml"
-    cp data/config.yaml.example data/config.yaml
+    cp data/izaber.yaml.example data/izaber.yaml
   fi
 }
 
 default_invoke_command () {
-  INVOKE_COMMAND="/app/nexus/run-server.sh"
-  #INVOKE_COMMAND="tmux new -s nexus /app/nexus/run-server.sh"
+  INVOKE_COMMAND="/app/run-server.sh"
+  #INVOKE_COMMAND="tmux new -s nexus /app/run-server.sh"
 }
 
 launch_container () {
@@ -88,7 +88,6 @@ launch_container () {
 
   CMD="docker run --name $CONTAINER_NAME \
       -ti \
-      -v `echo ~/izaber.yaml`:/home/zaber/izaber.yaml \
       -v `pwd`/logs:/logs \
       -v `pwd`:/app \
       -p $PORT_PLAINTEXT:8282 \
@@ -132,7 +131,7 @@ else
         ;;
 
     here) default_invoke_command
-          cd /app/nexus/data
+          cd /app/data
           $INVOKE_COMMAND
         ;;
 

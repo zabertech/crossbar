@@ -3,12 +3,36 @@ default:
       from: test@zaber.com
       host: localhost
   nexus: 
-    db:
-      path: 'db'
     ldap:
-      server:
-        host: file://ldap-mock-data.yaml
-  crossbar:
+        server:
+            host: 'dc2.id.izaber.com'
+            port: 636
+            use_ssl: True
+        login_template: '{login}@id.izaber.com'
+        login_attribute: 'sAMAccountName'
+        db_login: 'generic-ldap'
+        db_password: 'PASSWORD'
+        basedn: 'dc=id,dc=izaber,dc=com'
+        user_base: 'dc=id,dc=izaber,dc=com'
+        user_filter: '(&(objectCategory=person)(samaccountname=*))'
+        group_base: 'dc=id,dc=izaber,dc=com'
+        group_filter: '(&(objectCategory=group)(name=*))'
+
+    db:
+        path: /app/data/db
+
+    directory:
+        host: 'dc2.id.izaber.com'
+        login_template: 'id.izaber.com\{login}'
+        login: 'generic-ldap@id.izaber.com'
+        password: 'PASSWORD'
+        basedn: 'dc=id,dc=izaber,dc=com'
+        user_base: 'ou=Users,ou=Zaber,dc=id,dc=izaber,dc=com'
+        user_filter: '(&(objectCategory=person)(samaccountname=*))'
+        group_base: 'ou=Groups,dc=id,dc=izaber,dc=com'
+        group_filter: '(&(objectCategory=group)(name=*))'
+
+  crossbar: 
     version: 2
     workers:
     - transports:
@@ -16,18 +40,17 @@ default:
     # PATHS
     #################################################################
     #=====================================
-    # PLAINTEXT WEBSOCKET CONNECTION
+    # PLAINTEXT CONNECTION
     #=====================================
-      - type: web
-        paths:
+      - paths:
           /:
             directory: ../web
             type: static
           ws:
-            debug: false
+            debug: true
             type: websocket
             cookie:
-              max_age: 2
+              max_age: 604800
               store:
                 type: memory
             auth:
@@ -41,45 +64,7 @@ default:
         endpoint:
           type: tcp
           port: 8282
-
-    #=====================================
-    # PLAINTEXT RAWSOCKET CONNECTION
-    #=====================================
-      - type: rawsocket
-        endpoint:
-          type: tcp
-          interface: "127.0.0.1"
-          port: 18081
-          backlog: 1024
-        options:
-          max_message_size: 1048576
-        serializers:
-        - cbor
-        - msgpack
-        - json
-        auth:
-          ticket:
-            authenticator: com.izaber.wamp.auth.authenticator
-            type: dynamic    
-
-    #=====================================
-    # PLAINTEXT UNIX SOCKET CONNECTION
-    #=====================================
-      - type: rawsocket
-        endpoint:
-          type: unix
-          path: "/tmp/test-nexus.socket"
-        options:
-          max_message_size: 1048576
-        serializers:
-        - cbor
-        - msgpack
-        - json
-        auth:
-          ticket:
-            authenticator: com.izaber.wamp.auth.authenticator
-            type: dynamic
-
+        type: web
     #=====================================
     # SSL CONNECTION
     #=====================================
@@ -109,12 +94,52 @@ default:
     #      type: tcp
     #      port: 8181
     #    type: web
+    #
+    #
+
+    #=====================================
+    # PLAINTEXT RAWSOCKET CONNECTION
+    #=====================================
+      - type: rawsocket
+        endpoint:
+          type: tcp
+          interface: "127.0.0.1"
+          port: 18081
+          backlog: 1024
+        options:
+          max_message_size: 1048576
+        serializers:
+        - cbor
+        - msgpack
+        - json
+        auth:
+          ticket:
+            authenticator: com.izaber.wamp.auth.authenticator
+            type: dynamic    
+
+    #=====================================
+    # PLAINTEXT UNIX SOCKET CONNECTION
+    #=====================================
+      - type: rawsocket
+        endpoint:
+          type: unix
+          path: "/tmp/nexus.socket"
+        options:
+          max_message_size: 1048576
+        serializers:
+        - cbor
+        - msgpack
+        - json
+        auth:
+          ticket:
+            authenticator: com.izaber.wamp.auth.authenticator
+            type: dynamic
 
     #################################################################
       type: router
       options:
         pythonpath:
-          - ../../lib
+          - ../lib
     #################################################################
     # REALMS
     #################################################################
@@ -147,6 +172,10 @@ default:
     #################################################################
       components:
       - classname: nexus.component.domain.DomainComponent
+        realm: izaber
+        role: trusted
+        type: class
+      - classname: nexus.component.utils.UtilitiesComponent
         realm: izaber
         role: trusted
         type: class

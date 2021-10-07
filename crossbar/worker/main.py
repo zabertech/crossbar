@@ -15,6 +15,8 @@ from twisted.internet.error import ReactorNotRunning
 
 from crossbar._util import hl, hlid, hltype, _add_debug_options, term_print
 
+import nexus
+
 try:
     import vmprof
     _HAS_VMPROF = True
@@ -87,6 +89,12 @@ def get_argument_parser(parser=None):
 
     parser.add_argument('--restart', type=str, default=None, help='Restart method')
 
+    parser.add_argument('--izaber_environment',
+                        help='Use this environment from izaber.yaml configuration file')
+    parser.add_argument('--izaber_config',
+                        help='The location of the izaber.yaml configuration file for use')
+
+
     if _HAS_VMPROF:
         parser.add_argument('--vmprof',
                             action='store_true',
@@ -142,6 +150,15 @@ def _run_command_exec_worker(options, reactor=None, personality=None):
     globalLogPublisher.addObserver(flo)
 
     term_print('CROSSBAR[{}]:WORKER_STARTING'.format(options.worker))
+
+    # Initialize our connection to the nexus subsystem
+    nexus.initialize(
+        'crossbar',
+        config={
+            'config_filename': options.izaber_config or None,
+        },
+        environment=options.izaber_environment or None
+    )
 
     # Ignore SIGINT so we get consistent behavior on control-C versus
     # sending SIGINT to the controller process. When the controller is

@@ -272,6 +272,7 @@ class Personality(object):
     upgrade_config_file = checkconfig.upgrade_config_file
     convert_config_file = checkconfig.convert_config_file
     check_config_file = checkconfig.check_config_file
+    check_config_izaber = checkconfig.check_config_izaber
 
     # top level
     check_controller = checkconfig.check_controller

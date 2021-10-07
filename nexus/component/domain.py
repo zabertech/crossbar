@@ -23,6 +23,7 @@ import hashlib
 
 from izaber import initialize, config
 
+import nexus
 from nexus.constants import PERM_ALLOW, WAMP_LOCAL_REGISTRATION_PREFIX
 from nexus.orm import *
 from nexus.domain import *
@@ -336,7 +337,11 @@ class DomainComponent(BaseComponent):
                 # Does this already exist in the database?
                 REGISTRATIONS[registration_id] = key_hash
 
-                reg_rec = db.registrations.get_(key_hash)
+                try:
+                    reg_rec = db.registrations.get_(key_hash)
+                except Exception as ex:
+                    raise ex
+
                 if reg_rec:
                     reg_rec.active = True
                     reg_rec.create = reg_data['created']
@@ -619,4 +624,4 @@ class DomainComponent(BaseComponent):
             print("EX:", ex)
             print("-----------------------------------------------")
 
-initialize('nexus')
+

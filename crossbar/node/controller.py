@@ -46,6 +46,7 @@ from txaio import time_ns  # noqa
 
 __all__ = ('NodeController', 'create_process_env')
 
+import izaber
 
 def check_executable(fn):
     """
@@ -515,6 +516,10 @@ class NodeController(NativeProcess):
             args.extend(["--restart", options["restart"]])
         if worker_options_extra:
             args.extend(["--extra", worker_options_extra])
+
+        # izaber options
+        args.extend(["--izaber_environment", izaber.config._env ])
+        args.extend(["--izaber_config", izaber.config.config_fpath ])
 
         # Node-level callback to inject worker arguments
         #

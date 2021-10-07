@@ -187,7 +187,7 @@ class Node(object):
             # the following will read the config, check the config and replace
             # environment variable references in configuration values ("${MYVAR}") and
             # finally return the parsed configuration object
-            self._config = self.personality.check_config_file(self.personality, config_path)
+            self._config = self.personality.check_config_izaber(self.personality)
             config_source = Node.CONFIG_SOURCE_LOCALFILE
         else:
             config_path = None

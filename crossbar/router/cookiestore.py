@@ -443,4 +443,3 @@ class CookieStoreMemoryBacked(CookieStore):
                     })
         cookie_obj.save_()
 
-initialize('crossbar-server')

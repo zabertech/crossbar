@@ -37,9 +37,7 @@ RUN mkdir -p /logs \
     && mv /app/data /data \
     && rm -rf /app/logs \
     && ln -sf /logs /app/logs \
-    && ln -sf /data /app/data \
-    && rm -f /data/config.yaml \
-    && cp -af /data/config.yaml.example /data/config.yaml
+    && ln -sf /data /app/data
 
 USER zaber
 WORKDIR /app

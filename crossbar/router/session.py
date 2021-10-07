@@ -1257,4 +1257,3 @@ class RouterSessionFactory(object):
         return session
 
 
-initialize('crossbar-server')

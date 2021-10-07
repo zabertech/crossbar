@@ -6,7 +6,6 @@ from ldap3 import Server, Connection, ALL, ALL_ATTRIBUTES, SUBTREE
 from ldap3.utils.conv import escape_filter_chars
 
 from izaber import config, app_config
-from izaber.log import log
 from izaber.startup import request_initialize, initializer
 
 from nexus.orm import *
@@ -143,7 +142,7 @@ class LDAPServer:
                   )
             return conn
         except Exception as ex:
-            log.error(f"Unable to create connection to LDAP server {self.server} due to exception <{ex}>")
+            #log.error(f"Unable to create connection to LDAP server {self.server} due to exception <{ex}>")
             return False
 
     def user_get(self, login, attributes=None):
@@ -464,6 +463,6 @@ def load_config(**options):
     try:
         ldap.load_config(config.nexus.ldap.dict())
     except ( AttributeError, KeyError ):
-        log.info(f"SKIPPING LDAP CONFIGURATION AS NO SETTINGS FOUND")
+        #log.info(f"SKIPPING LDAP CONFIGURATION AS NO SETTINGS FOUND")
         pass
 

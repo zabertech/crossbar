@@ -28,6 +28,8 @@ from yaml.constructor import ConstructorError
 from collections import OrderedDict
 from collections.abc import Mapping, Sequence, Hashable
 
+import izaber
+
 __all__ = ('check_config', 'check_config_file', 'convert_config_file', 'check_guest')
 
 LATEST_CONFIG_VERSION = 2
@@ -3473,6 +3475,12 @@ def check_config_file(personality, configfile):
 
     return config
 
+def check_config_izaber(personality):
+    """ Leverages the izaber.yaml configuration instead of the
+    """
+    config = izaber.config.crossbar.dict()
+    personality.check_config(personality, config)
+    return config
 
 def convert_config_file(personality, configfile):
     """

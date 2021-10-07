@@ -39,6 +39,8 @@ from crossbar.node.template import Templates
 from crossbar.common.checkconfig import color_json, InvalidConfigException
 from crossbar.worker import main as worker_main
 
+import nexus
+
 try:
     import vmprof
     _HAS_VMPROF = True
@@ -955,7 +957,8 @@ def _run_command_check(options, reactor, personality):
 
     try:
         print("Checking local node configuration file: {}".format(configfile))
-        config = personality.check_config_file(personality, configfile)
+        #config = personality.check_config_file(personality, configfile)
+        config = personality.check_izaber_config(personality)
     except Exception as e:
         print("Error: {}".format(e))
         sys.exit(1)
@@ -1079,6 +1082,10 @@ def main(prog, args, reactor, personality):
     # "start" command
     #
     parser_start = subparsers.add_parser('start', help='Start a Crossbar.io node.')
+
+    # If required, override the default izaber environment
+    parser_start.add_argument('-e', '--environment',
+                              help='Use alternate environment from izaber.yaml configuration file')
 
     _add_log_arguments(parser_start)
     _add_cbdir_config(parser_start)
@@ -1242,11 +1249,20 @@ def main(prog, args, reactor, personality):
     if hasattr(options, 'config'):
         # if not explicit config filename is given, try to auto-detect .
         if not options.config:
-            for f in ['config.yaml', 'config.json']:
+            for f in ['izaber.yaml']:
                 fn = os.path.join(options.cbdir, f)
                 if os.path.isfile(fn) and os.access(fn, os.R_OK):
-                    options.config = f
+                    options.config = fn
                     break
+
+    # Load up the izaber configuration
+    nexus.initialize(
+        'crossbar',
+        config={
+            'config_filename': options.config or None,
+        },
+        environment=options.environment or None
+    )
 
     # Log directory
     #
