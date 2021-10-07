@@ -50,10 +50,12 @@ def wamp_subscription_handler_factory(component, handler, *args, **kwargs):
         try:
             return handler(*args, **kwargs, details=details)
         except PermissionError as ex:
-            raise ApplicationError(u"com.izaber.error.permissiondenied","Permission Denied")
+            raise ApplicationError(u"com.izaber.wamp.error.permissiondenied","Permission Denied")
         except ApplicationError as ex:
             component.log.warn(f"----------------------------------------------")
-            traceback.print_exc()
+            import traceback
+            for l in traceback.format_exc().split('\n'):
+                if l: component.log.debug(f"> {l}")
             raise
         except Exception as ex:
             component.log.warn(f"----------------------------------------------")
@@ -72,11 +74,12 @@ def wamp_register_handler_factory(component, handler, *args, **kwargs):
         try:
             return handler(*args, **kwargs, details=details)
         except PermissionError as ex:
-            raise ApplicationError(u"com.izaber.error.permissiondenied","Permission Denied")
+            raise ApplicationError(u"com.izaber.wamp.error.permissiondenied","Permission Denied")
         except ApplicationError as ex:
             component.log.warn(f"----------------------------------------------")
             import traceback
-            traceback.print_exc()
+            for l in traceback.format_exc().split('\n'):
+                if l: component.log.debug(f"> {l}")
             raise
         except Exception as ex:
             component.log.warn(f"----------------------------------------------")

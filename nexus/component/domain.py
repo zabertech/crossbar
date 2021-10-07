@@ -77,49 +77,42 @@ class DomainComponent(BaseComponent):
             authid: login
             details: other stuff including the password
         """
-        try: # attempt login
-            self.log.info(f"Authenticating '{authid}'")
 
-            # If there's no ticket (password) provided we simply drop out
-            password = options.get('ticket')
-            if not password:
-                self.log.warn(f"NOPASSWORD: Rejected {authid}")
-                raise Exception('Invalid Login')
+        self.log.info(f"Authenticating '{authid}'")
 
-            # This authentication may have been assigned a Cookie
-            # if so, we want to keep track of it
-            try:
-                cbtid = options['transport'].get('cbtid')
-            except KeyError as ex:
-                cbtid = None
+        # If there's no ticket (password) provided we simply drop out
+        password = options.get('ticket')
+        if not password:
+            self.log.warn(f"NOPASSWORD: Rejected {authid}")
+            raise ApplicationError('com.izaber.wamp.error.invalidlogin','Invalid Login')
 
-            res = controller.login(authid, password, cbtid)
-            if not res:
-                self.log.warn(f"PASSWORDERROR: Rejected {authid}")
-                raise Exception('Invalid Login')
+        # This authentication may have been assigned a Cookie
+        # if so, we want to keep track of it
+        try:
+            cbtid = options['transport'].get('cbtid')
+        except KeyError as ex:
+            cbtid = None
 
-            cookie_obj = res['cookie_obj']
-            transport = options.get('transport',{})
-            cookie_obj.data['cbtid'] = transport.get('cbtid')
-            cookie_obj.data['peer'] = transport.get('peer')
-            cookie_obj.data['cookie'] = options.get('cookie')
-            cookie_obj.save_()
+        res = controller.login(authid, password, cbtid)
+        if not res:
+            self.log.warn(f"PASSWORDERROR: Rejected {authid}")
+            raise ApplicationError('com.izaber.wamp.error.invalidlogin','Invalid Login')
 
-            # We want to session information if we can
-            if options:
-                session_id = options['session']
-                SESSIONS[session_id] = {
-                    'options': options,
-                    'auth_res': res,
-                }
-            return res
+        cookie_obj = res['cookie_obj']
+        transport = options.get('transport',{})
+        cookie_obj.data['cbtid'] = transport.get('cbtid')
+        cookie_obj.data['peer'] = transport.get('peer')
+        cookie_obj.data['cookie'] = options.get('cookie')
+        cookie_obj.save_()
 
-        except Exception as ex:
-            self.log.debug(f"Auth Fail for {authid} because '{ex}' <{type(ex)}>")
-            # This is helpful when during development we're breaking stuff
-            #traceback.print_exc()
-
-        return False
+        # We want to session information if we can
+        if options:
+            session_id = options['session']
+            SESSIONS[session_id] = {
+                'options': options,
+                'auth_res': res,
+            }
+        return res
 
     @wamp_register('.auth.authenticate')
     def authenticate(self, login, password, details):
@@ -321,8 +314,6 @@ class DomainComponent(BaseComponent):
                 # match type
                 key_hash = hashlib.md5(f"{match}:{uri}".encode("utf-8")).hexdigest()
 
-                self.log.warn(f"REG: {registration_id}:{key_hash}")
-
                 # Get some information on the session if possible which allows us
                 # to set information like where the connection last came from
                 sess_rec = None
@@ -363,7 +354,6 @@ class DomainComponent(BaseComponent):
                         'authid': authid,
                     }
                     reg_rec = db.registrations.create_(registration_rec)
-                self.log.warn(f"REGREC: {reg_rec}")
 
             self.call('wamp.registration.get', registration_id)\
                 .addCallback(on_register_data)
@@ -395,7 +385,6 @@ class DomainComponent(BaseComponent):
 
             # Figure out our internal record for the registered URI
             key_hash = REGISTRATIONS.get(registration_id)
-            self.log.warn(f"REGDEL: {registration_id}:{key_hash}")
             reg_rec = db.registrations[key_hash]
 
             # Mark this registration as dead
