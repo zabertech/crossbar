@@ -52,6 +52,8 @@ class DomainComponent(BaseComponent):
     def session_on_join(self, session_details, details):
         if not session_details:
             return
+        if 'session' not in session_details:
+            return
 
         session_id = session_details['session']
         SESSIONS.setdefault(session_id,{})\
