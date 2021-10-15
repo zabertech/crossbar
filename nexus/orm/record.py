@@ -161,6 +161,10 @@ class NexusRecord(metaclass=NexusRecordMeta):
         """ Ensures that the instance is a singleton keyed by
             the yaml_fpath
         """
+
+        # We make a copy since we do modify the record
+        data_rec = data_rec.copy()
+
         # Discover the key
         key = data_rec[cls._key_name]
         del data_rec[cls._key_name]
