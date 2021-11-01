@@ -256,6 +256,53 @@ def test_db():
     result = db.reindex_uuids()
     assert not result['actions']
 
+    ######################################################
+    # Creating keys with special characters
+    # IN some cases such as using ' ' or ':' inside of
+    # the keys that gets stored to files, we need to escape
+    # the data
+    ######################################################
+
+    # Let's copy a record to force the reindex to assign a new
+    # uuid
+    test_user = new_users[0]
+    ownership_path = test_user.ownership_path_resolve_(
+                            test_user._key_value,
+                            test_user.parent_
+                        )
+
+    source_path = ownership_path.resolve()
+    target_path = source_path.parent / "ban^20anas"
+    copy_tree(source_path.as_posix(), target_path.as_posix())
+
+    result = db.reindex_uuids()
+    assert result['actions']
+    assert len(result['actions']) == 1
+
+    user2_obj = db.users.get_('ban anas')
+    assert user2_obj
+
+    # Then load all the entries
+    user_list = db.users.list_()
+    assert len(user_list) == 102
+
+    # Let's now create a "broken" filename
+    target_path = source_path.parent / "ban:anas"
+    copy_tree(source_path.as_posix(), target_path.as_posix())
+
+    user_list = db.users.list_()
+    assert len(user_list) == 102
+
+    fixed_path = target_path.parent / r"ban^3aanas"
+    shutil.move( target_path, fixed_path )
+
+    result = db.reindex_uuids()
+    assert result['actions']
+    assert len(result['actions']) == 1
+
+    user_list = db.users.list_()
+    assert len(user_list) == 103
+
 if __name__ == "__main__":
     test_db()
 

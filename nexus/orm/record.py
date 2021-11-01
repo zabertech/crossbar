@@ -259,6 +259,18 @@ class NexusRecord(metaclass=NexusRecordMeta):
             self.data_rec_.update(defaults)
         return True
 
+    def unload_(self):
+        """ This is mostly used by the testing system but can be useful if for
+            some reason there is a desire to "unload" a record from the cache.
+            This will then make the system behave as if the record was never loaded
+            so the next time the record is required, it will be pulled from disk
+            rather than cache.
+        """
+        if self.yaml_fpath_:
+            del RECORD_CACHE[self.yaml_fpath_]
+
+        # FIXME/TODO: Should we unload associated collections as well?
+
     def compute_paths_(self):
         """ Figures out what the path to the NexusRecord etc should be
         """

@@ -1,3 +1,4 @@
+from nexus.log import log
 from nexus.orm.common import *
 from nexus.orm.record import *
 
@@ -213,7 +214,18 @@ class NexusCollection(metaclass=NexusCollectionMeta):
             if not key_match:
                 continue
 
-            key = key_match.group('key')
+            key_unescaped = key_match.group('key')
+            key = name_unescape(key_unescaped)
+
+            # This is a sanity check. It should be possible to escape the
+            # key into a path that matches the filesystem. There's a chance
+            # that the file could have simply been copied with a rename which
+            # might then mean that the file contains chars that would normally
+            # be escaped. 
+            if name_escape(key) != key_unescaped:
+                log.error(f"Skipping {key_fpath} for `{key}` as it appears to not be escaped. Fix and reindex the database!")
+                continue
+
             key_obj = self[key]
 
             # (weird if we do) If we get a None object, we simply ignore it
