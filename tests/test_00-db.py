@@ -303,6 +303,21 @@ def test_db():
     user_list = db.users.list_()
     assert len(user_list) == 103
 
+    RECORD_CACHE.clear()
+
+    user2_rec = db.users.get_('ban:anas')
+
+    # Now load via uuid
+    user2_uuid = user2_rec.uuid
+    user3_rec = db.get( user2_uuid )
+
+    assert user3_rec.login == 'ban:anas'
+
+    # Then can we find the record via query?
+    query_res = db.query('users',[['login','=','ban anas']])
+    assert query_res['hits'] == 1
+
+
 if __name__ == "__main__":
     test_db()
 

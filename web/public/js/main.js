@@ -1531,7 +1531,8 @@ var userComponent = null;
 userDetailedStream.on.value(url=> {
   startLoader();
 
-  const login = url.params.login;
+
+  const login = unescape(url.params.login);
   session.call(
           'com.izaber.wamp.system.db.query',
           [

@@ -195,6 +195,8 @@ class NexusCollection(metaclass=NexusCollectionMeta):
 
     def __getitem__(self, key):
         if not self.exists_(key):
+            import traceback
+            log.warn("\n".join(traceback.format_stack()))
             raise KeyError(f"'{key}' is not a valid {self.__class__.__name__} key")
         return self.instantiate_({
             self._key_name: key
