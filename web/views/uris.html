@@ -3,7 +3,7 @@
 {% block content %}
 <div class="container-lg">
 
-<h1>Registrations</h1>
+<h1>URIs</h1>
 
 {% if isTrusted %}
 
@@ -34,6 +34,7 @@
   <table class="table table-hover">
     <thead>
       <tr>
+        <th scope="col">Action</th>
         <th scope="col">URI</th>
         <th scope="col">Match</th>
         <th scope="col">Active</th>
@@ -42,23 +43,24 @@
       </tr>
     </thead>
     <tbody>
-      {% for registration in records%}
-        {% if registration.active %}
+      {% for uri in records%}
+        {% if uri.active %}
           <tr>
         {% else %}
           <tr class="code inactive">
         {% endif %}
+          <td>{{uri.action}}</td>
           <td class="code">
-            <a href="#/registrations/{{registration.key}}">{{registration.uri}}</a>
+            <a href="#/uris/{{uri.key}}">{{uri.uri}}</a>
           </td>
-          <td>{{registration.match}}</td>
-          <td>{{registration.active}}</td>
+          <td>{{uri.match}}</td>
+          <td>{{uri.active}}</td>
           <td class="code">
-            {% if registration.peer %}
-            {{registration.authid}}@{{registration.peer}}
+            {% if uri.peer %}
+            {{uri.authid}}@{{uri.peer}}
             {% endif %}
           </td>
-          <td>{{registration.system}}</td>
+          <td>{{uri.system}}</td>
         </tr>
       {% endfor %}
 
@@ -68,7 +70,7 @@
   <nav aria-label="Page navigation">
     <ul class="pagination">
       {% if page > 1 -%}
-        <li class="page-item"><a class="page-link" href="#/registrations/?{{qs('page',page-2)}}">Previous</a></li>
+        <li class="page-item"><a class="page-link" href="#/uris/?{{qs('page',page-2)}}">Previous</a></li>
       {% endif %}
 
       {% for index in range(0, pages) -%}
@@ -76,12 +78,12 @@
               {% if index + 1 == page -%}
                 active
               {%- endif %}">
-          <a class="page-link" href="#/registrations/?{{qs('page',index)}}">{{index+1}}</a>
+          <a class="page-link" href="#/uris/?{{qs('page',index)}}">{{index+1}}</a>
         </li>
       {%- endfor %}
 
       {% if page < pages -%}
-        <li class="page-item"><a class="page-link" href="#/registrations/?{{qs('page',page)}}">Next</a></li>
+        <li class="page-item"><a class="page-link" href="#/uris/?{{qs('page',page)}}">Next</a></li>
       {% endif %}
     </ul>
   </nav>

@@ -11,8 +11,74 @@ __all__ = [
 
 import re
 
-from nexus.constants import PERM_DENY, PERM_REQUIRE_ELEVATED, PERM_ALLOW
+from nexus.constants import PERM_DENY, PERM_REQUIRE_ELEVATED, PERM_ALLOW, \
+                            PERM_REQUIRE_DOCUMENTATION, \
+                            PERMS, TRAIT_TO_CODE, PERM_REGEX, PERM_TO_NAME, \
+                            TRAITS, TRAIT_TO_NAME
 from nexus.orm import NexusRecord, NexusCollection
+
+class Perm:
+    perm_code = None
+    perm_val = None
+    traits = None
+
+    def __init__(self, perm_code, perm_val=PERM_DENY, traits_str=None):
+        self.perm_code = perm_code
+        self.perm_val  = perm_val
+        self.traits = {}.fromkeys(TRAIT_TO_CODE.keys(), False)
+        self.traits_parse(traits_str)
+
+    def traits_parse(self, traits_str):
+        """ Takes a string similar to "+", or "!+" and extracts the associated
+            metadata.
+        """
+        if not traits_str:
+            return
+
+        for trait_code in traits_str:
+            if trait_code not in TRAIT_TO_NAME:
+                continue
+            trait_name = TRAIT_TO_NAME[trait_code]
+            self.traits[trait_name] = True
+
+    def __bool__(self):
+        return bool(self.perm_val)
+
+    def __eq__(self, other):
+        if other == PERM_ALLOW:
+            return self.perm_val == PERM_ALLOW
+
+        if other == PERM_DENY:
+            return self.perm_val == PERM_DENY
+
+        if other == PERM_REQUIRE_ELEVATED:
+            return self.require_elevated
+
+        if other == PERM_REQUIRE_DOCUMENTATION:
+            return self.require_documentation
+
+    def __str__(self):
+        if not self.perm_val:
+            return ''
+
+        s = self.perm_code
+        for trait_name, trait_code in TRAITS:
+            if not self[trait_name]: continue
+            s += trait_code
+
+        return s
+
+    def __getitem__(self, k):
+        return self.traits[k]
+    __getattr__ = __getitem__
+
+    def __setitem__(self, k, v):
+        if self.traits and k in self.traits:
+            self.traits[k] = v
+        else:
+            object.__setattr__(self, k, v)
+    __setattr__ = __setitem__
+
 
 class _AuthorizedNexusCollection(NexusCollection):
     _role_permissions = {
@@ -162,25 +228,9 @@ def perms_str(perm,blank='-'):
 # X+ : this implies that accessing X is allowed but requires
 #      elevated permissions to do so
 #
-    mappings = [
-        [ 'call', 'c' ],
-        [ 'register', 'r' ],
-        [ 'subscribe', 's' ],
-        [ 'publish', 'p' ],
-    ]
-
     p = ''
-    for k, nk in mappings:
-        v = perm.get(k)
-        if v == PERM_DENY: 
-            continue
-
-        elif v == PERM_ALLOW:
-            p += nk
-
-        elif v == PERM_REQUIRE_ELEVATED:
-            p += nk + '+'
-
+    for perm_name, perm_code  in PERMS:
+        p += str(perm[perm_name])
     return p
 
 def str_perms(perms):
@@ -192,29 +242,18 @@ def str_perms(perms):
 #     if structured like the following:
 # X+ : this implies that accessing X is allowed but requires
 #      elevated permissions to do so
+# r! : Any registration that matches requires an entry in the 
+#      uris table
 #
-    perm_struct = {
-        'call': PERM_DENY,
-        'register': PERM_DENY,
-        'subscribe': PERM_DENY,
-        'publish': PERM_DENY
-    }
+    perm_struct = {}
+    for perm_name, perm_code in PERMS:
+        perm_struct[perm_name] = Perm(perm_code)
+
     if not perms:
         return perm_struct
 
-    mappings = {
-      'c': 'call',
-      'r': 'register',
-      's': 'subscribe',
-      'p': 'publish'
-    }
-
-    for perm, modifier in  re.findall( r'([crsp])([+]?)', perms ):
-        perm_name = mappings[perm]
-        if modifier == '+':
-            perm_value = PERM_REQUIRE_ELEVATED
-        else:
-            perm_value = PERM_ALLOW
-        perm_struct[perm_name] = perm_value
+    for perm_code, modifier in  re.findall( PERM_REGEX, perms ):
+        perm_name = PERM_TO_NAME[perm_code]
+        perm_struct[perm_name] = Perm(perm_code, PERM_ALLOW, modifier)
 
     return perm_struct

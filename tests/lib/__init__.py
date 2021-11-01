@@ -46,6 +46,7 @@ def reset_env():
                 f"db/users",
                 f"db/roles",
                 f"db/cookies",
+                f"db/uris",
                 f"db/uuids",
             ]
     for create_path in create_dirs:
@@ -68,44 +69,49 @@ def create_roles():
 
     roles = {
         'public': [
-                ['com.izaber.wamp.public.*', 'crsp']
+                ['public.*', 'crsp']
             ],
         'frontend': [
-                ['com.izaber.wamp.public.*', 'crsp'],
-                ['com.izaber.wamp.frontend.*', 'crsp'],
-                ['com.izaber.wamp.reauth.*', 'c+r+'],
+                ['public.*', 'crsp'],
+                ['frontend.*', 'crsp'],
+                ['reauth.*', 'c+r+'],
+                ['docsrequired.*', 'cr!'],
 
                 # Authentication
-                ['com.izaber.wamp.auth.whoami', 'c'],
-                ['com.izaber.wamp.auth.authenticate', 'c'],
-                ['com.izaber.wamp.auth.reauthenticate', 'c'],
-                ['com.izaber.wamp.auth.reauthenticate_expire', 'c'],
-                ['com.izaber.wamp.auth.is_reauthenticated', 'c'],
-                ['com.izaber.wamp.auth.extend_reauthenticate', 'c'],
-                ['com.izaber.wamp.auth.refresh_authorizer', 'c'],
+                ['auth.whoami', 'c'],
+                ['auth.authenticate', 'c'],
+                ['auth.reauthenticate', 'c'],
+                ['auth.reauthenticate_expire', 'c'],
+                ['auth.is_reauthenticated', 'c'],
+                ['auth.extend_reauthenticate', 'c'],
+                ['auth.refresh_authorizer', 'c'],
 
-                ['com.izaber.wamp.my.apikeys.list', 'c'],
-                ['com.izaber.wamp.my.apikeys.create', 'c'],
-                ['com.izaber.wamp.my.apikeys.delete', 'c'],
+                ['my.apikeys.list', 'c'],
+                ['my.apikeys.create', 'c'],
+                ['my.apikeys.delete', 'c'],
 
-                ['com.izaber.wamp.my.metadata.get', 'c'],
-                ['com.izaber.wamp.my.metadata.set', 'c'],
-                ['com.izaber.wamp.my.metadata.delete', 'c'],
+                ['my.metadata.get', 'c'],
+                ['my.metadata.set', 'c'],
+                ['my.metadata.delete', 'c'],
 
-                ['com.izaber.wamp.ad.users', 'c'],
-                ['com.izaber.wamp.ad.groups', 'c'],
-                ['com.izaber.wamp.directory.users', 'c'],
-                ['com.izaber.wamp.directory.groups', 'c'],
+                ['ad.users', 'c'],
+                ['ad.groups', 'c'],
+                ['directory.users', 'c'],
+                ['directory.groups', 'c'],
 
                 # ORM
-                ['com.izaber.wamp.system.db.query', 'c'],
-                ['com.izaber.wamp.system.db.create', 'c'],
-                ['com.izaber.wamp.system.db.update', 'c'],
-                ['com.izaber.wamp.system.db.upsert', 'c'],
-                ['com.izaber.wamp.system.db.delete', 'c'],
+                ['system.db.query', 'c'],
+                ['system.db.create', 'c'],
+                ['system.db.update', 'c'],
+                ['system.db.upsert', 'c'],
+                ['system.db.delete', 'c'],
+
+                # Documentation
+                ['system.document.*', 'c'],
+
             ],
         'backend': [
-                ['com.izaber.wamp.*', 'crsp'],
+                ['*', 'crsp'],
             ],
     }
 
@@ -113,9 +119,14 @@ def create_roles():
         role_obj = db.roles.create_({ 'role': role })
         for uri, perms in uris:
             role_obj.permissions.append({
+                    'uri': 'com.izaber.wamp.' + uri,
+                    'perms': perms
+                })
+            role_obj.permissions.append({
                     'uri': uri,
                     'perms': perms
                 })
+
         role_obj.save_()
     db.roles.refresh_uri_authorizer_()
 

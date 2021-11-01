@@ -1,5 +1,4 @@
 import izaber
-import os
 
 import nexus.domain
 

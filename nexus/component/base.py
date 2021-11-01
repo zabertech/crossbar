@@ -3,6 +3,7 @@ from autobahn.wamp.exception import ApplicationError
 from autobahn.wamp.types import RegisterOptions, SubscribeOptions
 
 from nexus.constants import WAMP_LOCAL_SUBSCRIPTION_PREFIX, WAMP_LOCAL_REGISTRATION_PREFIX
+from nexus.log import log
 
 from twisted.logger import Logger
 from twisted.internet.defer import inlineCallbacks
@@ -13,7 +14,15 @@ __all__ = [
   'wamp_subscribe',
   'wamp_register',
   'BaseComponent',
+  'RequireDocumentationPermissionError',
+  'InvalidLoginPermissionError',
 ]
+
+class InvalidLoginPermissionError(PermissionError):
+    pass
+
+class RequireDocumentationPermissionError(PermissionError):
+    pass
 
 def _wamp_decorate(uri_, method):
     """ Does the actual work of decorating the method so that
@@ -50,21 +59,35 @@ def wamp_subscription_handler_factory(component, handler, *args, **kwargs):
         try:
             return handler(*args, **kwargs, details=details)
         except PermissionError as ex:
-            raise ApplicationError(u"com.izaber.wamp.error.permissiondenied","Permission Denied")
+            log.error(ex)
+            log.error(traceback.format_exc())
+            # The preference is to not simply hide the error, however, it seems that
+            # by throwing the error, it stops the thread altogether which then causes
+            # authenticate to fail. That's even less desireable so we just fail out
+            # silently
+            #raise ApplicationError(u"com.izaber.wamp.error.permissiondenied","Permission Denied")
+            return
         except ApplicationError as ex:
-            component.log.warn(f"----------------------------------------------")
-            import traceback
-            for l in traceback.format_exc().split('\n'):
-                if l: component.log.debug(f"> {l}")
-            raise
+            log.error(ex)
+            log.error(traceback.format_exc())
+            # The preference is to not simply hide the error, however, it seems that
+            # by throwing the error, it stops the thread altogether which then causes
+            # authenticate to fail. That's even less desireable so we just fail out
+            # silently
+            return
         except Exception as ex:
-            component.log.warn(f"----------------------------------------------")
-            component.log.warn(f"Handler Failure for {authid} because '{ex}'"\
-                               f"<{type(ex)}>")
-            component.log.warn(f"ARGS: {repr(args)}")
-            component.log.warn(f"KWARGS: {repr(kwargs)}")
-            component.log.warn(f"DETAILS: {repr(details)}")
-            raise
+            log.error(f"Subcription Handler Failure for {authid} because '{ex}'"\
+                     f"<{type(ex)}>")
+            log.error(f"ARGS: {repr(args)}")
+            log.error(f"KWARGS: {repr(kwargs)}")
+            log.error(f"DETAILS: {repr(details)}")
+            log.error(traceback.format_exc())
+            # The preference is to not simply hide the error, however, it seems that
+            # by throwing the error, it stops the thread altogether which then causes
+            # authenticate to fail. That's even less desireable so we just fail out
+            # silently
+            # raise ApplicationError("com.izaber.wamp.error", f"{ex}")
+            return
     return wrap
 
 
@@ -73,22 +96,25 @@ def wamp_register_handler_factory(component, handler, *args, **kwargs):
         authid = details.caller_authid
         try:
             return handler(*args, **kwargs, details=details)
+        except RequireDocumentationPermissionError as ex:
+            raise ApplicationError("com.izaber.wamp.error.requiredocumentation", str(ex))
         except PermissionError as ex:
-            raise ApplicationError(u"com.izaber.wamp.error.permissiondenied","Permission Denied")
+            raise ApplicationError("com.izaber.wamp.error.permissiondenied", "Permission Denied")
+        except InvalidLoginPermissionError as ex:
+            raise ApplicationError('com.izaber.wamp.error.invalidlogin','Invalid Login')
         except ApplicationError as ex:
-            component.log.warn(f"----------------------------------------------")
-            import traceback
-            for l in traceback.format_exc().split('\n'):
-                if l: component.log.debug(f"> {l}")
+            log.warn(f"Invocation Error: {ex}")
+            log.warn(traceback.format_exc())
             raise
+
+        # Switch all errors to something that we can handle
         except Exception as ex:
-            component.log.warn(f"----------------------------------------------")
-            component.log.warn(f"Handler Failure for {authid} because '{ex}'"\
-                          f"<{type(ex)}>")
-            component.log.warn(f"ARGS: {repr(args)}")
-            component.log.warn(f"KWARGS: {repr(kwargs)}")
-            component.log.warn(f"DETAILS: {repr(details)}")
-            raise
+            log.warn(f"Invocation Failure for {authid} because '{ex}'"\
+                f"<{type(ex)}>")
+            log.warn(f"ARGS: {repr(args)}")
+            log.warn(f"KWARGS: {repr(kwargs)}")
+            log.warn(f"DETAILS: {repr(details)}")
+            raise ApplicationError("com.izaber.wamp.error", str(ex))
     return wrap
 
 class BaseComponent(ApplicationSession):

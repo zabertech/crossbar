@@ -138,7 +138,7 @@ class NexusRecord(metaclass=NexusRecordMeta):
         # Find out the reference to the top level DB
         resolved_path = cls.path_format_.format(
                             parent_path = parent.base_path_,
-                            key = key,
+                            key = name_escape(key),
                         )
         return pathlib.Path(resolved_path)
 
@@ -148,7 +148,7 @@ class NexusRecord(metaclass=NexusRecordMeta):
         # this is used for deletes and key renames
         resolved_path = cls.ownership_path_format_.format(
                             parent_path = parent.base_path_,
-                            key = key,
+                            key = name_escape(key),
                         )
         return pathlib.Path(resolved_path)
 

@@ -23,9 +23,34 @@ uuid: null
 RECORD_STATE_REMOVED = 0
 RECORD_STATE_DEFAULT = 1
 
+# Identifies which characters will be escaped when writing the name
+# or key to the filesystem
+CONVERT_CHARS =  r'([#%&{}\<>*?/ $!\'":@+`|=^\n])'
+
 #####################################################
 # Path Regex Handlers
 #####################################################
+
+def name_escape(s):
+    """ Escapes the string into something that's somewhat human
+        readable so that it can be saved onto the filesystem
+    """
+    res = re.sub(
+              CONVERT_CHARS,
+              lambda a: f"^{hex(ord(a.group(1)))[2:]}",
+              s
+            )
+    return res
+
+def name_unescape(s):
+    """ Unescapes escaped string into the original string
+    """
+    res = re.sub(
+              r'\^(..)',
+              lambda a: f"{chr(int(a.group(1), base=16))}",
+              s
+            )
+    return res
 
 def path_format(path_format, **tags):
     def repl(m):

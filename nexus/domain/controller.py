@@ -4,11 +4,14 @@ from nexus.constants import AUTH_SOURCE_LOCAL, \
                             DEFAULT_ROLE, \
                             PERM_DENY, \
                             PERM_ALLOW, \
-                            PERM_REQUIRE_ELEVATED, \
+                            PERM_REQUIRE_DOCUMENTATION, \
                             ELEVATED_STALE_SECONDS
 from nexus.orm import *
 from nexus.domain.db import *
 from nexus.domain.ldap import ldap
+from nexus.log import log
+
+import traceback
 
 ##################################################
 # Authentication Results
@@ -176,11 +179,14 @@ class Controller:
         if not cookie_obj: return
         cookie_obj.delete_()
 
-    def authorize(self, login, role, uri, action, extra=None):
+    def authorize(self, login, role, uri, action, extra=None, options=None):
         """ This will return permissions values depending on whether
             or not the role is allowed to perform the particular
             action on the URI
         """
+
+        if options is None:
+            options = {}
 
         # We validate on the role first. This is necessary especially for
         # anonymous users. They will have been assigned a random auth_id
@@ -207,7 +213,7 @@ class Controller:
         # Get some basic variables
         cache_id = extra.get('cache_id') if extra else None
         cookie_obj = db.get(cache_id, 'cookie')
-        auth_data = cookie_obj.data.get('auth')
+        auth_data = cookie_obj and cookie_obj.data.get('auth')
 
         # Validate that the key has not yet expired
         if auth_data and auth_data[0] == AUTH_SOURCE_APIKEY:
@@ -224,13 +230,23 @@ class Controller:
             if not cache_id:
                 raise ValueError('Missing cache_id when session has restrictions' \
                                  ' associated. Cannot look restrictions up so aborting.')
-            print("COOKIE", uri, action)
             key_permissions = cookie_obj.authorize_(uri, action)
             if not key_permissions:
                 return PERM_DENY
 
+        # Does this query require documentation? Let's verify if it does
+        if permission.require_documentation:
+            match = options.get('match') or 'exact'
+            key = db.uris.generate_key_( action, match, uri )
+            rec = db.uris.get_(key)
+            if not rec or not rec.documented():
+                return PERM_REQUIRE_DOCUMENTATION
+
+            if not permission.require_elevated:
+                return PERM_ALLOW
+
         # Do we need to test for a recent login?
-        if permission == PERM_REQUIRE_ELEVATED:
+        if permission.require_elevated:
             if not cache_id:
                 raise ValueError('Missing cache_id when session requires elevated' \
                                  ' permissions. Cannot look last auth up so aborting.')
@@ -326,6 +342,58 @@ class Controller:
         """ Flush all credential information and force a reload
         """
         db.load_data()
+
+    #####################################################
+    # URI Documentation
+    #####################################################
+    def system_document_set(self, 
+              login,
+              role,
+              uri,
+              action,
+              options,
+              data,
+              extra=None,
+          ):
+        """ Used to register information related to a registered (or to be
+            registered) URI.
+
+            action: can be of register, call, publish, subscribe
+            uri: uri path
+            data: dict(
+                        description="text"
+                        owner="information about the uri manager"
+                      )
+        """
+        permission = self.authorize( login, role, uri, action, options, extra )
+
+        # Not allowed. Might be false
+        if not permission:
+            return False
+
+        if permission not in(
+                      PERM_ALLOW,
+                      PERM_REQUIRE_DOCUMENTATION
+                      ):
+            return False
+
+        # We got here. That means we're actually allowed to perform the
+        # action on this URI. This means we'll allow the logging of this
+        # action to the database
+        match = data.get('match') or 'exact'
+        db.uris.upsert_(
+            action,
+            match,
+            uri,
+            data
+        )
+
+        return True
+
+
+    def system_document_get(self, match, uri, details=None):
+        pass
+
 
     #####################################################
     # User Management

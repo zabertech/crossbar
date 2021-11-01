@@ -19,15 +19,16 @@ from nexus.component.base import *
 
 import time
 import schedule
-import hashlib
+import traceback
 
 from izaber import initialize, config
 
 import nexus
-from nexus.constants import PERM_ALLOW, WAMP_LOCAL_REGISTRATION_PREFIX
+from nexus.constants import PERM_ALLOW, PERM_REQUIRE_DOCUMENTATION, WAMP_LOCAL_REGISTRATION_PREFIX
 from nexus.orm import *
 from nexus.domain import *
 from nexus.cron import cron
+from nexus.log import log
 
 from twisted.internet.defer import inlineCallbacks, DeferredList
 from autobahn.wamp.exception import ApplicationError
@@ -80,12 +81,13 @@ class DomainComponent(BaseComponent):
             details: other stuff including the password
         """
 
-        self.log.info(f"Authenticating '{authid}'")
+        log.info(f"Authenticating '{authid}'")
 
         # If there's no ticket (password) provided we simply drop out
         password = options.get('ticket')
         if not password:
-            self.log.warn(f"NOPASSWORD: Rejected {authid}")
+            log.warn(f"NOPASSWORD: Rejected {authid}")
+            raise InvalidLoginPermissionError('Invalid Login')
             raise ApplicationError('com.izaber.wamp.error.invalidlogin','Invalid Login')
 
         # This authentication may have been assigned a Cookie
@@ -97,8 +99,8 @@ class DomainComponent(BaseComponent):
 
         res = controller.login(authid, password, cbtid)
         if not res:
-            self.log.warn(f"PASSWORDERROR: Rejected {authid}")
-            raise ApplicationError('com.izaber.wamp.error.invalidlogin','Invalid Login')
+            log.warn(f"PASSWORDERROR: Rejected {authid}")
+            raise InvalidLoginPermissionError('Invalid Login')
 
         cookie_obj = res['cookie_obj']
         transport = options.get('transport',{})
@@ -121,7 +123,7 @@ class DomainComponent(BaseComponent):
         try:
             return bool(controller.authenticate(login, password))
         except Exception as ex:
-            self.log.error(f"Couldn't authenticate {login} due to {ex}")
+            log.error(f"Couldn't authenticate {login} due to {ex}")
             return False
 
     #############################################################################
@@ -129,26 +131,44 @@ class DomainComponent(BaseComponent):
     #############################################################################
 
     @wamp_register('.auth.authorizer')
-    def authorizer(self, session, uri, action, *args, options=None, **kwargs):
+    def authorizer(self, session, uri, action, options, **kwargs):
         """ Validates an action for a session to specific URIs 
         """
         auth_id = session['authid']
         auth_role = session['authrole']
         extra = session['authextra']
 
-        permission = controller.authorize( auth_id, auth_role,
-                                            uri, action, extra )
+        try:
+            permission = controller.authorize( auth_id, auth_role,
+                                                uri, action, extra, options )
 
-        # Not allowed. Might be false
-        if not permission:
+            # Not allowed. Might be false
+            if not permission:
+                return False
+
+            # If the action requires documentation to be provided
+            if permission == PERM_REQUIRE_DOCUMENTATION:
+                msg = f"{action}://{uri} requires documentation in the database before {action} may be called"
+                raise RequireDocumentationPermissionError(msg)
+
+            # Allowed
+            if permission == PERM_ALLOW:
+                return {'allow': True, 'disclose': True}
+
+            # Not allowed since we don't have elevated privs
             return False
 
-        # Allowed
-        if permission == PERM_ALLOW:
-            return {'allow': True, 'disclose': True}
+        # Something exploded
+        except ApplicationError as ex:
+            raise
 
-        # Not allowed since we don't have elevated privs
-        return False
+        except PermissionError as ex:
+            raise
+
+        except Exception as ex:
+            tb = traceback.format_exc()
+            log.error(f"Authorizer error for '{action}://{uri}': {ex} {tb}")
+            return False
 
     def get_extra_from_details(self, details):
         """ Lookups up the extras data from details
@@ -159,26 +179,29 @@ class DomainComponent(BaseComponent):
         return session.get('details',{}).get('authextra')
 
     @wamp_register('.auth.reauthenticate')
+    @wamp_register('auth.reauthenticate')
     @wamp_register('.system.reauthenticate', deprecated=True)
     def reauthenticate(self, password, details):
         """ If the password matches the current session's authid,
             adds the elevated privileges property to ths current session
         """
         authid = details.caller_authid
-        self.log.info(f"Authenticating elevated {authid}")
+        log.info(f"Authenticating elevated {authid}")
         extra = self.get_extra_from_details(details)
         return controller.reauthenticate(authid, password, extra)
 
     @wamp_register('.auth.reauthenticate_expire')
+    @wamp_register('auth.reauthenticate_expire')
     def reauthenticate_expire(self, details):
         """ Strips the elevated authentication status from the session
         """
         authid = details.caller_authid
-        self.log.info(f"Removing elevated auth for '{authid}'")
+        log.info(f"Removing elevated auth for '{authid}'")
         extra = self.get_extra_from_details(details)
         controller.reauthenticate_expire(extra)
 
     @wamp_register('.auth.is_reauthenticated')
+    @wamp_register('auth.is_reauthenticated')
     @wamp_register('.system.is_reauthenticated', deprecated=True)
     def is_reauthenticated(self, details):
         """ Returns the amount of time elapsed since last authentication
@@ -187,6 +210,7 @@ class DomainComponent(BaseComponent):
         return controller.reauthenticate_remaining(extra)
 
     @wamp_register('.auth.extend_reauthenticate')
+    @wamp_register('auth.extend_reauthenticate')
     @wamp_register('.system.extend_reauthenticate', deprecated=True)
     def extend_reauthenticate(self, details):
         """ Updates the checkpoint from where the system will consider a session
@@ -196,11 +220,11 @@ class DomainComponent(BaseComponent):
         return controller.reauthenticate_touch(extra)
 
     @wamp_register('.auth.refresh_authorizer')
+    @wamp_register('auth.refresh_authorizer')
     def reload(self, details):
         """ Request a reload of the database
         """
         controller.reload()
-
 
     #############################################################################
     # Database Maintenance
@@ -210,12 +234,13 @@ class DomainComponent(BaseComponent):
         """ Runs the process that syncs the database with ldap and other things
         """
         start_time = time.time()
-        self.log.info(f"Running system sync")
+        log.info(f"Running system sync")
         controller.sync()
         elapsed = time.time() - start_time
-        self.log.info(f"System sync took {elapsed} seconds")
+        log.info(f"System sync took {elapsed} seconds")
 
     @wamp_register('.system.sync')
+    @wamp_register('system.sync')
     def system_sync(self, details=None):
         """ Runs the process that syncs the database with ldap and other things
         """
@@ -225,7 +250,7 @@ class DomainComponent(BaseComponent):
         """ Runs the process that cleans up the database
         """
         start_time = time.time()
-        self.log.info(f"Running system vacuum")
+        log.info(f"Running system vacuum")
 
         # First we need to touch all NexusCookies records of all
         # sessions currently active
@@ -238,20 +263,21 @@ class DomainComponent(BaseComponent):
             try:
                 cookie_obj = db.get(cache_id,'cookie')
             except Exception as ex:
-                self.log.warn(f"cache_id {cache_id} didn't resolve to a cookie! <{ex}>")
+                log.warn(f"cache_id {cache_id} didn't resolve to a cookie! <{ex}>")
                 continue
 
             try:
                 cookie_obj.touch_()
             except Exception as ex:
-                self.log.warn(f"Unable to touch cookie {cache_id} <{ex}>")
+                log.warn(f"Unable to touch cookie {cache_id} <{ex}>")
 
         controller.vacuum()
 
         elapsed = time.time() - start_time
-        self.log.info(f"System vacuum took {elapsed} seconds")
+        log.info(f"System vacuum took {elapsed} seconds")
 
     @wamp_register('.system.vacuum')
+    @wamp_register('system.vacuum')
     def system_vacuum(self, details):
         """ Runs the process that cleans up the database
         """
@@ -262,6 +288,7 @@ class DomainComponent(BaseComponent):
     #############################################################################
 
     @wamp_register('.ad.users')
+    @wamp_register('ad.users')
     @wamp_register('.directory.users', deprecated=True)
     def ldap_users(self, details):
         users = []
@@ -273,11 +300,13 @@ class DomainComponent(BaseComponent):
         return users
 
     @wamp_register('.ad.groups')
+    @wamp_register('ad.groups')
     @wamp_register('.directory.groups', deprecated=True)
     def ldap_groups(self, details):
         return ldap.groups_raw()
 
     @wamp_register('.auth.whoami')
+    @wamp_register('auth.whoami')
     def whoami(self, details):
         """ Returns information related to the current user
         """
@@ -290,13 +319,62 @@ class DomainComponent(BaseComponent):
     # Registration Tracking
     # See: https://github.com/wamp-proto/wamp-proto/blob/master/rfc/text/advanced/ap_rpc_registration_meta_api.md
     #############################################################################
+
+    @wamp_register('.system.document.set')
+    @wamp_register('system.document.set')
+    def system_document_set(self, action, uri, data, details=None):
+        """ Used to register information related to a registered (or to be
+            registered) URI.
+
+            action: can be of register, call, publish, subscribe
+            uri: uri path
+            details: dict(
+                        description="text"
+                        contact="information about the uri manager"
+                      )
+        """
+
+        # Find out if the user can access this uri
+        session = SESSIONS.get(details.caller,{})
+        if not session:
+            return False
+
+        # We ignore everything except register for now
+        if action!= 'register':
+            return False
+
+        extra = session.get('details',{}).get('authextra',{})
+        options = session.get('details',{}).get('options',{})
+        try:
+            return controller.system_document_set(
+                            details.caller_authid,
+                            details.caller_authrole,
+                            uri, action, options, data, extra )
+
+        # Something exploded
+        except ApplicationError as ex:
+            raise
+
+        except Exception as ex:
+            tb = traceback.format_exc()
+            log.error(f"Authorized crashed for '{action}://{uri}': {ex} {tb}")
+            return False
+
+
+    @wamp_register('.system.document.get')
+    @wamp_register('system.document.get')
+    def system_document_get(self, match, uri, details=None):
+        """ Used to register information related to a registered (or to be
+            registered) URI.
+        """
+        pass
+
     @wamp_subscribe('wamp.registration.on_register')
     def registration_on_register(self, session_id, registration_id, details=None ):
         """ When we get a notification for a new registration, we want to log
             its existance in the database along with tracking metadata such as
             source and connection times
         """
-
         try:
             def on_register_data( reg_data ):
                 # sess_data = {
@@ -312,10 +390,6 @@ class DomainComponent(BaseComponent):
                 match = reg_data['match']
                 invoke = reg_data['invoke']
 
-                # We make a key of the record mixing both uri and
-                # match type
-                key_hash = hashlib.md5(f"{match}:{uri}".encode("utf-8")).hexdigest()
-
                 # Get some information on the session if possible which allows us
                 # to set information like where the connection last came from
                 sess_rec = None
@@ -327,41 +401,29 @@ class DomainComponent(BaseComponent):
                     peer = details.get('transport',{}).get('peer','')
                     authid = details.get('authid','')
 
-                # Does this already exist in the database?
-                REGISTRATIONS[registration_id] = key_hash
+                # Update the reference in the databse
+                reg_rec = db.uris.upsert_(
+                                'register',
+                                match,
+                                uri,
+                                {
+                                    'match': match,
+                                    'invoke': invoke,
+                                    'active': True,
+                                    'create': reg_data['created'],
+                                    'system': not sess_rec, # system/trusted have no info so we cheat
+                                    'peer': peer,
+                                    'authid': authid,
+                                }
+                            )
 
-                try:
-                    reg_rec = db.registrations.get_(key_hash)
-                except Exception as ex:
-                    raise ex
-
-                if reg_rec:
-                    reg_rec.active = True
-                    reg_rec.create = reg_data['created']
-                    reg_rec.system = not sess_rec # system/trusted have no info so we cheat
-                    reg_rec.peer = peer
-                    reg_rec.authid = authid
-                    reg_rec.save_()
-
-                else:
-                    registration_rec = {
-                        'key': key_hash,
-                        'uri': uri,
-                        'match': match,
-                        'invoke': invoke,
-                        'active': True,
-                        'create': reg_data['created'],
-                        'system': not sess_rec, # system/trusted have no info so we cheat
-                        'peer': peer,
-                        'authid': authid,
-                    }
-                    reg_rec = db.registrations.create_(registration_rec)
+                REGISTRATIONS[registration_id] = reg_rec.key
 
             self.call('wamp.registration.get', registration_id)\
                 .addCallback(on_register_data)
 
         except Exception as ex:
-            self.log.error(f"ERROR in nexus' registration_on_register: {ex}")
+            log.error(f"ERROR in nexus' registration_on_register: {ex}")
 
     @wamp_subscribe('wamp.registration.on_unregister')
     def registration_on_unregister(self, session_id, registration_id, details=None ):
@@ -369,7 +431,6 @@ class DomainComponent(BaseComponent):
             id most of the time
         """
         pass
-
 
     @wamp_subscribe('wamp.registration.on_delete')
     def registration_on_delete(self, session_id, registration_id, details=None ):
@@ -395,7 +456,7 @@ class DomainComponent(BaseComponent):
             # Record the changes
             reg_rec.save_()
         except Exception as ex:
-            self.log.error(f"ERROR in nexus' registration_on_delete: {ex}")
+            log.error(f"ERROR in nexus' registration_on_delete: {ex}")
 
 
     #############################################################################
@@ -403,11 +464,11 @@ class DomainComponent(BaseComponent):
     # See: https://github.com/wamp-proto/wamp-proto/blob/master/rfc/text/advanced/ap_pubsub_subscription_meta_api.md
     #############################################################################
     @wamp_subscribe('wamp.subscription.on_subscribe')
-    def subscription_on_subscribe(self, session_id, options=None, details=None):
+    def subscription_on_subscribe(self, session_id, subscription_id, options=None, details=None):
         pass
 
     @wamp_subscribe('wamp.subscription.on_delete')
-    def subscription_on_delete(self, session_id, details):
+    def subscription_on_delete(self, session_id, subscription_id, options=None, details=None):
         pass
 
     #############################################################################
@@ -415,6 +476,7 @@ class DomainComponent(BaseComponent):
     #############################################################################
 
     @wamp_register('.system.db.query')
+    @wamp_register('system.db.query')
     def db_query(self, collection_type,
                        conditions,
                        fields=None,
@@ -448,6 +510,7 @@ class DomainComponent(BaseComponent):
         return results
 
     @wamp_register('.system.db.create')
+    @wamp_register('system.db.create')
     def db_create(self, parent_uuid, collection_attrib, data_rec, yaml=False, details=None):
         """ Executes an ORM create on the database
         """
@@ -461,6 +524,7 @@ class DomainComponent(BaseComponent):
         return record.dict_(yaml)
 
     @wamp_register('.system.db.update')
+    @wamp_register('system.db.update')
     def db_update(self, uid_b64s, data_rec, details=None):
         login = details.caller_authid
         record = db.update_authorized(
@@ -471,6 +535,7 @@ class DomainComponent(BaseComponent):
         return True
 
     @wamp_register('.system.db.delete')
+    @wamp_register('system.db.delete')
     def db_delete(self, uid_b64s, details=None):
         login = details.caller_authid
         record = db.delete_authorized(
@@ -480,6 +545,7 @@ class DomainComponent(BaseComponent):
         return True
 
     @wamp_register('.system.db.upsert')
+    @wamp_register('system.db.upsert')
     def db_upsert(self, parent_uuid, collection_attrib, data_rec, yaml=False, details=None):
         login = details.caller_authid
         record = db.upsert_authorized(
@@ -507,6 +573,7 @@ class DomainComponent(BaseComponent):
         return metadata
 
     @wamp_register('.my.metadata.get')
+    @wamp_register('my.metadata.get')
     @wamp_register('.system.preference.get', deprecated=True)
     def my_metadata_get(self, key, yaml=False, details=None):
         login = details.caller_authid
@@ -518,6 +585,7 @@ class DomainComponent(BaseComponent):
         return simplify(meta_obj.value)
 
     @wamp_register('.my.metadata.set')
+    @wamp_register('my.metadata.set')
     @wamp_register('.system.preference.set', deprecated=True)
     def my_metadata_set(self, key, value, yaml=False, details=None):
         login = details.caller_authid
@@ -542,6 +610,7 @@ class DomainComponent(BaseComponent):
             return simplify(meta_obj.value)
 
     @wamp_register('.my.metadata.delete')
+    @wamp_register('my.metadata.delete')
     def my_metadata_delete(self, key, details):
         login = details.caller_authid
         meta_obj = db.users[login].metadata.get_(key)
@@ -549,6 +618,7 @@ class DomainComponent(BaseComponent):
             meta_obj.delete_()
 
     @wamp_register('.my.apikeys.list')
+    @wamp_register('my.apikeys.list')
     def my_apikeys_list(self, details):
         login = details.caller_authid
         apikey_list = []
@@ -557,6 +627,7 @@ class DomainComponent(BaseComponent):
         return apikey_list
 
     @wamp_register('.my.apikeys.create')
+    @wamp_register('my.apikeys.create')
     def my_apikeys_create(self, data_rec=None, details=None):
         login = details.caller_authid
         user_obj = db.users[login]
@@ -567,6 +638,7 @@ class DomainComponent(BaseComponent):
                         details=details)
 
     @wamp_register('.my.apikeys.delete')
+    @wamp_register('my.apikeys.delete')
     def my_apikeys_delete(self, uuid_b64, details):
         return self.db_delete( [uuid_b64], details=details)
 

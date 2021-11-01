@@ -16,6 +16,7 @@ from twisted.internet.error import ReactorNotRunning
 from crossbar._util import hl, hlid, hltype, _add_debug_options, term_print
 
 import nexus
+import nexus.log
 
 try:
     import vmprof
@@ -159,6 +160,7 @@ def _run_command_exec_worker(options, reactor=None, personality=None):
         },
         environment=options.izaber_environment or None
     )
+    nexus.log.log.set_logger(log)
 
     # Ignore SIGINT so we get consistent behavior on control-C versus
     # sending SIGINT to the controller process. When the controller is

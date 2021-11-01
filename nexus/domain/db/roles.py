@@ -29,11 +29,14 @@ uuid: null
 #     if structured like the following:
 # X+ : this implies that accessing X is allowed but requires
 #      elevated permissions to do so
+# r! : anything registering with this rule MUST have metadata
+#      registered in the uris orm
 #
 # Example of a perms are
 #    - c+
 #    - c-s-
 #    - cs
+#    - r!
 #
 # If permissions is an empty array, the role has access to nothing: []
 permissions: []
@@ -82,7 +85,7 @@ class NexusRole(NexusRecord):
         perms = self.uri_authorizer_().match(uri)
         if not perms:
             return PERM_DENY
-        permission = int(perms.data.get(action) or PERM_DENY)
+        permission = perms.data.get(action) or PERM_DENY
         return permission
 
     def vacuum_(self):

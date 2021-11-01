@@ -31,6 +31,7 @@ def test_db():
         'com.izaber.wamp.personal.*': 'cr',
         'com.izaber.wamp.elevated.*': 'c+',
         'com.izaber.wamp.chatty.*': 'sp',
+        'com.izaber.wamp.docsrequired.*': 'r!c',
     }
     for uri, perms in uri_perms.items():
         role_obj.permissions.append({
@@ -202,6 +203,24 @@ def test_db():
                     )
     # And we should be allowed again
     assert authz_res
+
+    ##################################################
+    # Requires Documentation Flags
+    ##################################################
+
+    # We should be allowed to 'call' the com.izaber.wamp.elevated
+    # uri as long as elevated privs have been enabled
+    authz_res = controller.authorize(
+                        login,
+                        login_res['role'],
+                        'com.izaber.wamp.docsrequired.hello',
+                        'register',
+                        extra
+                    )
+    # We shouldn't be allowed since there's no documentation associated
+    assert authz_res == PERM_REQUIRE_DOCUMENTATION
+
+    # So let's add some documentation
 
     ##################################################
     # API Keys

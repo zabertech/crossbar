@@ -5,9 +5,21 @@
 
 <h1>Review {{uri}}</h1>
 
-<form id="registration-form">
+<form id="uri-form">
 
 <div class="row g-3">
+
+  <div class="col-md-6">
+    <label class="form-check-label" for="match-policy">Action</label>
+    <input type="text"
+            class="form-control"
+            data-link="action"
+            id="action"
+            name="action"
+            readonly="readonly"
+            aria-label="Action"
+            placeholder="Action">
+  </div>
 
   <div class="col-md-6">
     <label class="form-check-label" for="match-policy">Match Policy</label>

@@ -205,6 +205,7 @@ function connect( login, password ) {
           return loginPunt();
         case 'wamp.error.invalid_login':
         case 'com.izaber.wamp.invalid_login':
+        case 'com.izaber.wamp.error.permissiondenied':
           return loginPunt('Invalid Login','Unknown login or password');
         case 'wamp.error.not_authorized':
           return loginPunt('Not Authorized',details.reason.args[0]);
@@ -1248,12 +1249,12 @@ class NexusRole extends DataComponent {
 
 
 /*******************************************************************
- * NexusRegistration
+ * NexusURI
  ******************************************************************/
 
-class NexusRegistration extends DataComponent {
+class NexusURI extends DataComponent {
   constructor (opts) {
-    opts.template ||= 'registration.html'
+    opts.template ||= 'uri.html'
     opts.target ||= 'body';
     super(opts);
   }
@@ -1578,9 +1579,9 @@ roleDetailedStream.on.value(async url=> {
 })
 
 /*******************************************************************
- * Registrations List
+ * URIs List
  ******************************************************************/
-async function updateRegistrationsList(q) {
+async function updateURIsList(q) {
 // This will be invoked whenver a new dataset is required from the 
 // db search
 //
@@ -1630,7 +1631,7 @@ async function updateRegistrationsList(q) {
 
   try {
     let result = await call('.system.db.query',
-                              ['registrations', conditions],
+                              ['uris', conditions],
                               {
                                 'sort': [sort],
                                 'limit': limit,
@@ -1640,7 +1641,7 @@ async function updateRegistrationsList(q) {
     result.qs = qs;
     result.sortKey = sort[0];
     result.sortOrder = sort[1];
-    let targetElement = render('registrations.html', result);
+    let targetElement = render('uris.html', result);
 
     // Attach events to the form elements for searching
     let filterSystem = targetElement.querySelector('#filter-system');
@@ -1650,7 +1651,7 @@ async function updateRegistrationsList(q) {
     filterSystem.addEventListener(
         'change', ev => {
             q.set('system', ev.currentTarget.checked ? '1' : '');
-            updateRegistrationsList(q);
+            updateURIsList(q);
         }
     );
 
@@ -1659,7 +1660,7 @@ async function updateRegistrationsList(q) {
     filterQuery.addEventListener(
         'change', ev => {
             q.set('q', ev.currentTarget.value );
-            updateRegistrationsList(q);
+            updateURIsList(q);
         }
     );
     filterQuery.focus();
@@ -1669,32 +1670,32 @@ async function updateRegistrationsList(q) {
 
   }
   catch (err) {
-    console.log("Registrations query raise exception:", err);
+    console.log("URIs query raise exception:", err);
   }
 
   endLoader();
 }
 
 
-const registrationsStream = route('/registrations(.*)')
-registrationsStream.on.value(async (ev) => {
-  await updateRegistrationsList(ev.searchParams);
+const urisStream = route('/uris(.*)')
+urisStream.on.value(async (ev) => {
+  await updateURIsList(ev.searchParams);
 });
 
 
 /*******************************************************************
- * Registration Edit
+ * URI Edit
  ******************************************************************/
-const registrationDetailedStream = route('/registrations/:key')
-var registrationComponent = null;
-registrationDetailedStream.on.value(url=> {
+const uriDetailedStream = route('/uris/:key')
+var uriComponent = null;
+uriDetailedStream.on.value(url=> {
   startLoader();
 
   const key = url.params.key;
   session.call(
           'com.izaber.wamp.system.db.query',
           [
-              'registrations',
+              'uris',
               [['key','=',key]]
           ],
           {'yaml':true}
@@ -1703,13 +1704,13 @@ registrationDetailedStream.on.value(url=> {
             if ( res['hits'] == 0 ) {
                 throw 'MissingResult';
             }
-            let registration = res['records'][0];
-            registrationComponent = new NexusRegistration({ data: registration });
-            registrationComponent.render();
+            let uri = res['records'][0];
+            uriComponent = new NexusURI({ data: uri });
+            uriComponent.render();
             endLoader()
           },
           err=>{
-            console.log("Unable to get registrations!", err)
+            console.log("Unable to get uris!", err)
             endLoader();
           },
   );

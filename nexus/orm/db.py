@@ -75,6 +75,10 @@ class NexusDB:
         """ Returns a record based upon the uid_b64 value
         """
         try:
+            # We can't search on an empty value
+            if not uid_b64:
+                return
+
             if uid_b64 == '%root':
                 return self
             resolved_fpath = self.hashed_path(uid_b64).resolve()

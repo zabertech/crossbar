@@ -86,7 +86,7 @@ class NexusCookie(NexusRecord):
         perms = self.uri_authorizer_().match(uri)
         if not perms:
             return PERM_DENY
-        permission = int(perms.data.get(action) or PERM_DENY)
+        permission = perms.data.get(action) or PERM_DENY
         return permission
 
     @property
