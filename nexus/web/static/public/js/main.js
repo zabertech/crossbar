@@ -413,6 +413,8 @@ class DataComponent {
             if ( element.type == 'checkbox' ) {
                 element.addEventListener('change',ev =>{
                     this.set(key, ev.currentTarget.checked );
+                    element.classList.add('is-valid')
+                    setTimeout(()=>{element.classList.remove('is-valid')}, 5000)
                 });
                 element.checked = this.get(key);
                 break;
@@ -421,19 +423,29 @@ class DataComponent {
             else if ( element.type == 'radio' ) {
                 element.addEventListener('change',ev =>{
                     this.set(key, ev.currentTarget.value );
+                    element.classList.add('is-valid')
+                    setTimeout(()=>{element.classList.remove('is-valid')}, 5000)
                 });
                 element.checked = this.get(key) == element.value;
                 break;
             }
 
+            // Since there is no `break` when the element is not
+            // of type checkbox or radio, this will fall through
+            // to `SELECT` case and and register interest that way
+
         case 'SELECT':
+
             element.addEventListener('change',async ev=>{
                 try {
                     await this.set(key, ev.currentTarget.value );
+                    element.classList.add('is-valid')
+                    setTimeout(()=>{element.classList.remove('is-valid')}, 5000)
                 }
                 catch (err) {
-                  generalErrorMessage('Failed Saving', err);
-                  element.value = this.get(key);
+                    generalErrorMessage('Failed Saving', err);
+                    element.classList.add('is-invalid')
+                    element.value = this.get(key);
                 }
             });
             element.value = this.get(key);
@@ -1531,7 +1543,8 @@ var userComponent = null;
 userDetailedStream.on.value(url=> {
   startLoader();
 
-  const login = url.params.login;
+
+  const login = unescape(url.params.login);
   session.call(
           'com.izaber.wamp.system.db.query',
           [

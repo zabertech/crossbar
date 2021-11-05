@@ -9,6 +9,7 @@ import re
 file_path = pathlib.Path(os.path.realpath(__file__))
 
 base_path = file_path.parent
+os.chdir(base_path)
 
 test_fpaths = list(base_path.glob('test*.py'))
 test_fpaths.sort()

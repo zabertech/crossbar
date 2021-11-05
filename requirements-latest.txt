@@ -1,5 +1,6 @@
 attrs>=17.2.0
-git+https://github.com/crossbario/autobahn-python.git@master#egg=autobahn[twisted,encryption,compress,serialization,scram,xbr]
+autobahn
+autobahn[twisted,encryption,compress,serialization,scram,xbr]
 base58>=2.1.0
 bcrypt>=3.1.6
 bitstring>=3.1.5
@@ -11,6 +12,7 @@ constantly>=15.1.0
 cookiecutter>=1.6.0
 cryptography>=2.6.1
 docker>=3.5.0
+ecdsa
 eth-account>=0.5.4
 eth-typing>=2.2.2
 flask>=1.1.1
@@ -31,6 +33,7 @@ jinja2>=2.10.1
 lmdb>=1.1.1
 MarkupSafe>=1.1.1
 mistune>=0.8.4
+mnemonic
 morphys>=1.0
 netaddr>=0.8.0
 numpy>=1.20.0

@@ -21,8 +21,9 @@ default:
       - type: web
         paths:
           /:
-            directory: ../web
             type: static
+            resource: static
+            package: nexus.web
           ws:
             debug: false
             type: websocket

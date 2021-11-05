@@ -256,7 +256,7 @@ class NexusDB:
                 # We need to create a closured handler function which is why this nasty structure exists
                 def handler_factory(attrib, index):
                     def handler_func(index_node, m):
-                        key = m.group(index)
+                        key = name_unescape(m.group(index))
                         node = index_node[attrib][key]
                         return node
                     return handler_func

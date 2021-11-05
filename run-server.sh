@@ -15,10 +15,10 @@ LOG_FORMAT=${LOG_FORMAT:=standard}
 # This allows the monkey patched crossbar to find our modules
 export PYTHONPATH="$SCRIPT_DIR/lib"
 
-poetry run crossbar start \
+crossbar start \
         --cbdir ${CBDIR} \
         --logformat ${LOG_FORMAT}\
         --color ${LOG_COLOURS}\
         --loglevel ${LOG_LEVEL} \
-	$@
+        $@
 

@@ -1,25 +1,24 @@
 default:
-  email:
-      from: test@zaber.com
-      host: localhost
+  paths:
+      path: './data'
   nexus: 
     ldap:
-        server:
-            host: 'dc2.id.izaber.com'
-            port: 636
-            use_ssl: True
-        login_template: '{login}@id.izaber.com'
-        login_attribute: 'sAMAccountName'
-        db_login: 'generic-ldap'
-        db_password: 'PASSWORD'
-        basedn: 'dc=id,dc=izaber,dc=com'
-        user_base: 'dc=id,dc=izaber,dc=com'
-        user_filter: '(&(objectCategory=person)(samaccountname=*))'
-        group_base: 'dc=id,dc=izaber,dc=com'
-        group_filter: '(&(objectCategory=group)(name=*))'
+#        server:
+#            host: ''
+#            port: 636
+#            use_ssl: True
+#        login_template: '{login}@id.izaber.com'
+#        login_attribute: 'sAMAccountName'
+#        db_login: ''
+#        db_password: ''
+#        basedn: 'dc=id,dc=izaber,dc=com'
+#        user_base: 'dc=id,dc=izaber,dc=com'
+#        user_filter: '(&(objectCategory=person)(samaccountname=*))'
+#        group_base: 'dc=id,dc=izaber,dc=com'
+#        group_filter: '(&(objectCategory=group)(name=*))'
 
     db:
-        path: /app/data/db
+        path: ./data/db
 
   crossbar: 
     version: 2
@@ -33,9 +32,8 @@ default:
     #=====================================
       - paths:
           /:
+            directory: ../web
             type: static
-            resource: static
-            package: nexus.web
           ws:
             debug: true
             type: websocket
