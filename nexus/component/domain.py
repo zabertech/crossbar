@@ -21,8 +21,6 @@ import time
 import schedule
 import traceback
 
-from izaber import initialize, config
-
 import nexus
 from nexus.constants import PERM_ALLOW, PERM_REQUIRE_DOCUMENTATION, WAMP_LOCAL_REGISTRATION_PREFIX
 from nexus.orm import *
@@ -448,7 +446,7 @@ class DomainComponent(BaseComponent):
 
             # Figure out our internal record for the registered URI
             key_hash = REGISTRATIONS.get(registration_id)
-            reg_rec = db.registrations[key_hash]
+            reg_rec = db.uris[key_hash]
 
             # Mark this registration as dead
             reg_rec.active = False

@@ -4,6 +4,7 @@ import time
 from .common import *
 from nexus.constants import PERM_DENY
 from nexus.domain.auth import TrieNode
+from nexus.log import log
 
 ##################################################
 # NexusCookie instance
@@ -60,13 +61,11 @@ class NexusCookie(NexusRecord):
     def expired_(self):
         """ Returns a true value if the record has gone stale
         """
-        age = time.time() - self.yaml_fpath_.stat().st_mtime
-        print(f"COOKIE AGE   {self.key} {age} > {self.max_age}")
+        age = time.time() - self.mtime_()
         return age > self.max_age
 
     def touch_(self):
         super().touch_()
-        print(f"COOKIE TOUCH {self.key} {self.mtime_()}")
 
     def uri_authorizer_(self, force=False):
         restrictions = self.data.get('restrictions')

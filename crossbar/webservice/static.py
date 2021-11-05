@@ -82,11 +82,14 @@ class RouterWebServiceStatic(RouterWebService):
 
         elif 'package' in config:
 
+            from nexus.log import log
+            log.warn(f"STATIC CONFIG {config}")
+
             if 'resource' not in config:
                 raise ApplicationError("crossbar.error.invalid_configuration", "missing resource")
 
             try:
-                importlib.import_module(config['package'])
+                res = importlib.import_module(config['package'])
             except ImportError as e:
                 emsg = "Could not import resource {} from package {}: {}".format(config['resource'], config['package'],
                                                                                  e)

@@ -18,3 +18,5 @@ recursive-include crossbar/master/webservice/templates *
 recursive-include crossbar/master/node *.json
 recursive-include crossbar/network/node *.json
 recursive-include crossbar/tests *.json
+
+recursive-include nexus/web *

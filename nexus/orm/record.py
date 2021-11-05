@@ -1,4 +1,5 @@
 from nexus.orm.common import *
+from nexus.log import log
 
 ##################################################
 # Nexus Metaclass for Record Types
@@ -385,11 +386,26 @@ class NexusRecord(metaclass=NexusRecordMeta):
         """ Updates the current yaml_fpath's mtime state to the value
             to the current timestamp
         """
-        if self.mtime_() == self.yaml_fpath_mtime:
-            self.yaml_fpath_.touch()
+
+        # We use a difference in the expected mtime and the cached mtime as a sign
+        # that the file has changed on disk. If we notice that the mtime on disk
+        # and the mtime on the filesystem is the same, we assume no changes. This
+        # creates a situation where we need to manually mark our cache with the
+        # new "touched" mtime otherwise we'll blithely reload assuming something
+        # has changed on disk
+        is_synced = self.mtime_() == self.yaml_fpath_mtime
+
+        # Set the mtime to the current. Previously we were using pathlib.Path.touch
+        # but for some reason it would put mtimes a couple of seconds in the past.
+        # This created problems for the tester and so we manually set the times
+        # explicitly to the same clock source so we can have full control when doing
+        # things like expiry testing.
+        epoch_time = time.time()
+        os.utime(self.yaml_fpath_, (epoch_time, epoch_time))
+
+        # Okay, let's update our cached mtime to the most recent
+        if is_synced:
             self.yaml_fpath_mtime = self.mtime_()
-        else:
-            self.yaml_fpath_.touch()
 
     def mtime_(self):
         """ Returns the file's last modification timestamp

@@ -216,9 +216,9 @@ def test_connect():
         # of running vacuum with 1 session disconnect and another
         # remaining connected
         for i in range(5):
-            client_active.call('com.izaber.wamp.system.vacuum')
-            print("VACUUM:", i)
             time.sleep(1)
+            print("VACUUM:", i)
+            client_active.call('com.izaber.wamp.system.vacuum')
 
         # The dead client's cookie should have been vacuumed by the
         # process
