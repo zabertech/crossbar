@@ -40,7 +40,7 @@ RUN groupadd -g 1000 zaber \
 COPY --chown=zaber:zaber run-server.sh /app
 COPY --chown=zaber:zaber ./tests/ /app/tests/
 
-USER zaber
+USER root
 WORKDIR /app
 
 ENTRYPOINT []
