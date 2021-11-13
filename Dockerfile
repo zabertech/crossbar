@@ -7,13 +7,9 @@ USER root
 
 COPY dist/ /dist/
 
-RUN groupadd -g 1000 zaber \
-    && useradd -m -u 1000 -d /home/zaber -g zaber zaber \
-    && mkdir /logs /data /app \
-    && chown zaber:zaber /logs /data /app \
+RUN    mkdir /logs /data /app \
     && ln -sf /logs /app/logs \
     && ln -sf /data /app/data \
-    && chown -R zaber: /app \
     && apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
                git \
@@ -37,10 +33,9 @@ RUN groupadd -g 1000 zaber \
     && rm -rf ~/.cache \
     && rm -rf /var/lib/apt/lists/*
 
-COPY --chown=zaber:zaber run-server.sh /app
-COPY --chown=zaber:zaber ./tests/ /app/tests/
+COPY run-server.sh /app
+COPY ./tests/ /app/tests/
 
-USER root
 WORKDIR /app
 
 EXPOSE 443 80
