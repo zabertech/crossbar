@@ -37,6 +37,8 @@ docker-build-deploy:
     - docker push $IMAGE_NAME
     - docker build -t $RELEASE_IMAGE_NAME .
     - docker push $RELEASE_IMAGE_NAME
+  only:
+    - tags
 
 python-package-deploy:
   tags:
@@ -50,5 +52,7 @@ python-package-deploy:
   script:
     - pip install twine
     - TWINE_PASSWORD=${CI_JOB_TOKEN} TWINE_USERNAME=gitlab-ci-token python -m twine upload --verbose --repository-url ${CI_SERVER_URL}/api/v4/projects/${CI_PROJECT_ID}/packages/pypi dist/*
+  only:
+    - tags
 
 
