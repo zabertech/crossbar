@@ -43,6 +43,8 @@ COPY --chown=zaber:zaber ./tests/ /app/tests/
 USER root
 WORKDIR /app
 
+EXPOSE 443 80
+
 ENTRYPOINT []
 CMD /app/run-server.sh
 
