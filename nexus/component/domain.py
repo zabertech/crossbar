@@ -37,6 +37,26 @@ def is_trusted(details):
         return True
     return False
 
+def extract_peer(transport):
+    # Get the peer address of the session. We'll get them via the following order
+    # 1. x-real-ip
+    # 2. x-forwarded-for (uses the first entry)
+    # 3. peer (might be the IP of the proxy)
+    if not transport:
+        return 'unknown'
+
+    http_headers = transport.get('http_headers_received',{})
+    peer = None
+    if http_headers:
+        peer = http_headers.get( 'x-real-ip',
+                  http_headers.get( 'x-forwarded-for' ) )
+        if peer:
+            peer = peer.split(',')[0].strip()
+    if not peer and transport.get('peer'):
+        peer = transport['peer'].split(':')[1]
+
+    return peer or 'unknown'
+
 SESSIONS = {}
 REGISTRATIONS = {}
 
@@ -103,7 +123,7 @@ class DomainComponent(BaseComponent):
         cookie_obj = res['cookie_obj']
         transport = options.get('transport',{})
         cookie_obj.data['cbtid'] = transport.get('cbtid')
-        cookie_obj.data['peer'] = transport.get('peer')
+        cookie_obj.data['peer'] = extract_peer(transport)
         cookie_obj.data['cookie'] = options.get('cookie')
         cookie_obj.save_()
 
@@ -396,7 +416,7 @@ class DomainComponent(BaseComponent):
                 if session_id and session_id in SESSIONS:
                     sess_rec = SESSIONS[session_id]
                     details = sess_rec.get('details',{})
-                    peer = details.get('transport',{}).get('peer','')
+                    peer = extract_peer(details.get('transport'))
                     authid = details.get('authid','')
 
                 # Update the reference in the databse
