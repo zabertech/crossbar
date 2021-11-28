@@ -83,7 +83,6 @@ class RouterWebServiceStatic(RouterWebService):
         elif 'package' in config:
 
             from nexus.log import log
-            log.warn(f"STATIC CONFIG {config}")
 
             if 'resource' not in config:
                 raise ApplicationError("crossbar.error.invalid_configuration", "missing resource")
