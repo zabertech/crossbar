@@ -408,7 +408,7 @@ def devdb_create(args):
             ['com.izaber.wamp.system.is_reauthenticated', 'c'],
 
             # Zerp allow for any db
-            ['com.izaber.wamp./zerp.*/.*', 'cs'],g
+            ['com.izaber.wamp./zerp.*/.*', 'cs'],
 
             # Consumption Graph
             ['com.izaber.wamp.graphs.product_graph_consumption', 'c'],
