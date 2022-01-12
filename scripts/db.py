@@ -366,51 +366,65 @@ def devdb_create(args):
     """
     roles = {
         'public': [
-                ['com.izaber.wamp.public', 'crsp'],
-                ['com.izaber.wamp.discovery.kncknc', 'p'],
-                ['com.izaber.wamp.discovery.whsthr', 's'],
-            ],
+            ['com.izaber.wamp.public', 'crsp'],
+            ['com.izaber.wamp.discovery.kncknc', 'p'],
+            ['com.izaber.wamp.discovery.whsthr', 's'],
+            ['com.izaber.wamp./dashboard:.*:dashboardRegistry/.get', 'c'],
+        ],
         'frontend': [
-                ['com.izaber.wamp.public', 'crsp'],
-                ['com.izaber.wamp.frontend', 'crsp'],
-                ['com.izaber.wamp.reauth', 'c+r+'],
+            ['com.izaber.wamp.public', 'crsp'],
+            ['com.izaber.wamp.frontend', 'crsp'],
+            ['com.izaber.wamp.reauth', 'c+r+'],
 
-                # Authentication
-                ['com.izaber.wamp.auth.whoami', 'c'],
-                ['com.izaber.wamp.auth.authenticate', 'c'],
-                ['com.izaber.wamp.auth.reauthenticate', 'c'],
-                ['com.izaber.wamp.auth.reauthenticate_expire', 'c'],
-                ['com.izaber.wamp.auth.is_reauthenticated', 'c'],
-                ['com.izaber.wamp.auth.extend_reauthenticate', 'c'],
-                ['com.izaber.wamp.auth.refresh_authorizer', 'c'],
+            # Authentication
+            ['com.izaber.wamp.auth.whoami', 'c'],
+            ['com.izaber.wamp.auth.authenticate', 'c'],
+            ['com.izaber.wamp.auth.reauthenticate', 'c'],
+            ['com.izaber.wamp.auth.reauthenticate_expire', 'c'],
+            ['com.izaber.wamp.auth.is_reauthenticated', 'c'],
+            ['com.izaber.wamp.auth.extend_reauthenticate', 'c'],
+            ['com.izaber.wamp.auth.refresh_authorizer', 'c'],
 
-                ['com.izaber.wamp.my.apikeys.list', 'c'],
-                ['com.izaber.wamp.my.apikeys.create', 'c'],
-                ['com.izaber.wamp.my.apikeys.delete', 'c'],
+            ['com.izaber.wamp.my.apikeys.list', 'c'],
+            ['com.izaber.wamp.my.apikeys.create', 'c'],
+            ['com.izaber.wamp.my.apikeys.delete', 'c'],
 
-                ['com.izaber.wamp.my.metadata.get', 'c'],
-                ['com.izaber.wamp.my.metadata.set', 'c'],
-                ['com.izaber.wamp.my.metadata.delete', 'c'],
+            ['com.izaber.wamp.my.metadata.get', 'c'],
+            ['com.izaber.wamp.my.metadata.set', 'c'],
+            ['com.izaber.wamp.my.metadata.delete', 'c'],
 
-                ['com.izaber.wamp.ad.users', 'c'],
-                ['com.izaber.wamp.ad.groups', 'c'],
+            ['com.izaber.wamp.ad.users', 'c'],
+            ['com.izaber.wamp.ad.groups', 'c'],
 
-                # ORM
-                ['com.izaber.wamp.system.db.query', 'c'],
-                ['com.izaber.wamp.system.db.create', 'c'],
-                ['com.izaber.wamp.system.db.update', 'c'],
-                ['com.izaber.wamp.system.db.upsert', 'c'],
-                ['com.izaber.wamp.system.db.delete', 'c'],
+            # ORM
+            ['com.izaber.wamp.system.db.query', 'c'],
+            ['com.izaber.wamp.system.db.create', 'c'],
+            ['com.izaber.wamp.system.db.update', 'c'],
+            ['com.izaber.wamp.system.db.upsert', 'c'],
+            ['com.izaber.wamp.system.db.delete', 'c'],
 
-                # Zerp allow for any db
-                ['com.izaber.wamp./zerp.*/.*', 'cs'],
+            # System preferences
+            ['com.izaber.wamp.system.preference.get', 'c'],
+            ['com.izaber.wamp.system.is_reauthenticated', 'c'],
 
-                # Consumption Graph
-                ['com.izaber.wamp.graphs.product_graph_consumption', 'c'],
-            ],
+            # Zerp allow for any db
+            ['com.izaber.wamp./zerp.*/.*', 'cs'],g
+
+            # Consumption Graph
+            ['com.izaber.wamp.graphs.product_graph_consumption', 'c'],
+        ],
         'backend': [
-                ['com.izaber.wamp.*', 'crsp'],
-            ],
+            ['com.izaber.wamp.*', 'crsp'],
+        ],
+    }
+
+    users = {
+        'dev_backend_user': {
+            'password': 'dev_backend_pass',
+            'name': 'backend user for dev',
+            'role': 'backend',
+            'source': AUTH_SOURCE_LOCAL,
+        }
     }
 
     for role, uris in roles.items():
@@ -452,6 +466,18 @@ def devdb_create(args):
             'upn': f"{login}@nexus",
         }
     user_obj = db.users.create_(user_rec)
+
+    for login, data in users.items():
+        rec = {
+            'login': login,
+            'plaintext_password': data.get('password'),
+            'role': data.get('role'),
+            'name': data.get('name'),
+            'source': data.get('source'),
+            'email': f"{login}@nexus",
+            'upn': f"{login}@nexus",            
+        }
+        user_obj = db.users.create_(rec)
 
 def main(args):
     if args['users']:
