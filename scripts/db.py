@@ -405,10 +405,22 @@ def devdb_create(args):
 
             # System preferences
             ['com.izaber.wamp.system.preference.get', 'c'],
+            ['com.izaber.wamp.system.preference.set', 'c'],
             ['com.izaber.wamp.system.is_reauthenticated', 'c'],
+            ['com.izaber.wamp.system.extend_reauthenticate', 'c'],
 
             # Zerp allow for any db
             ['com.izaber.wamp./zerp.*/.*', 'cs'],
+
+            # Allow logged in user to get registry
+            ['com.izaber.wamp./dashboard:.*:dashboardRegistry/.get', 'c'],
+            # Open up all calls to dashboard for a logged in user
+            ['com.izaber.wamp./dashboard:.*/.*', 'cs'],
+            # Allows calls to directory
+            ['com.izaber.wamp.directory.users', 'c'],
+            ['com.izaber.wamp.directory.groups', 'c'],
+            # Not sure if this should be allowed by default, but something is calling it from frontend
+            ['com.izaber.wamp.notification.router.registerDestination', 'c'],
 
             # Consumption Graph
             ['com.izaber.wamp.graphs.product_graph_consumption', 'c'],
@@ -418,10 +430,18 @@ def devdb_create(args):
         ],
     }
 
+    # wamp_zerp needs to be in place because calls from dashboard need a valid user in zerp
+    # After migration module is ready for zerp wamp_zerp can be removed and use a fully fictional user
     users = {
         'dev_backend_user': {
             'password': 'dev_backend_pass',
             'name': 'backend user for dev',
+            'role': 'backend',
+            'source': AUTH_SOURCE_LOCAL,
+        },
+        'wamp_zerp': {
+            'password': 'dev_backend_pass',
+            'name': 'Manual entry for wamp_zerp',
             'role': 'backend',
             'source': AUTH_SOURCE_LOCAL,
         }
