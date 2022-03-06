@@ -1,0 +1,13 @@
+izaber>=2.20210919
+izaber-wamp
+bs4
+faker
+ldap3
+passlib
+pytrie
+pytz
+schedule
+ruamel.yaml
+ruyaml
+
+
