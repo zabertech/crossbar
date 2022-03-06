@@ -4,6 +4,7 @@ bs4
 faker
 ldap3
 passlib
+pytest
 pytrie
 pytz
 schedule
