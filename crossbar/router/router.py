@@ -501,6 +501,8 @@ class Router(RouterBase):
             pass
         elif isinstance( msg, message.Subscribed ):
             pass
+        elif isinstance( msg, message.Event ):
+            pass
         else:
             self.log.warn(f"send<{cbtid}>: {type(msg)}")
 

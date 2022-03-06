@@ -4,7 +4,7 @@ autobahn[twisted,encryption,compress,serialization,scram,xbr]
 base58>=2.1.0
 bcrypt>=3.1.6
 bitstring>=3.1.5
-cbor>=1.0.0
+cbor2>=5.2.0
 git+https://github.com/crossbario/cfxdb.git@master#egg=cfxdb
 click>=7.0
 colorama>=0.4.4
