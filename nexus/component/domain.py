@@ -82,6 +82,10 @@ class DomainComponent(BaseComponent):
 
     @wamp_subscribe('wamp.session.on_leave')
     def session_on_leave(self, session_id, details):
+        # Remove all roster entries for this ession
+        controller.roster_unregister_session(session_id)
+
+        # Remove from session cache if it's there
         if not session_id in SESSIONS:
             return
         del SESSIONS[session_id]
@@ -289,17 +293,27 @@ class DomainComponent(BaseComponent):
             except Exception as ex:
                 log.warn(f"Unable to touch cookie {cache_id} <{ex}>")
 
+        # Now we need to validate that all current roster entries are
+        # actually alive by comparing the results against the session list
+        for entry in db.rosters:
+            if entry.session_id in SESSIONS:
+                continue
+            entry.delete_()
+
+        # Let the control do the rest of the vacuuming across the system
         controller.vacuum()
 
         elapsed = time.time() - start_time
         log.info(f"System vacuum took {elapsed} seconds")
+
+        return elapsed
 
     @wamp_register('.system.vacuum')
     @wamp_register('system.vacuum')
     def system_vacuum(self, details):
         """ Runs the process that cleans up the database
         """
-        self.vacuum()
+        return self.vacuum()
 
     #############################################################################
     # LDAP
@@ -488,6 +502,68 @@ class DomainComponent(BaseComponent):
     @wamp_subscribe('wamp.subscription.on_delete')
     def subscription_on_delete(self, session_id, subscription_id, options=None, details=None):
         pass
+
+
+    #############################################################################
+    # Roster Management
+    #############################################################################
+
+    @wamp_register('.system.roster.register')
+    @wamp_register('system.roster.register')
+    def roster_register(self, roster_name, data, visibility=None, details=None):
+        extra = self.get_extra_from_details(details)
+        reg_rec = controller.roster_register(
+                    details.caller,
+                    details.caller_authid,
+                    details.caller_authrole,
+                    roster_name,
+                    {
+                        'data': data,
+                        'visibility': visibility,
+                    },
+                    extra
+                )
+
+        if not reg_rec:
+            raise RequireRosterOpsPermissionError(f'Unable to add to roster "{roster_name}"')
+
+        return reg_rec.dict_()
+
+    @wamp_register('.system.roster.unregister')
+    @wamp_register('system.roster.unregister')
+    def roster_unregister(self, roster_name, details):
+        extra = self.get_extra_from_details(details)
+        controller.roster_unregister(
+                    details.caller,
+                    details.caller_authid,
+                    details.caller_authrole,
+                    roster_name,
+                    extra
+                )
+
+        return True
+
+    @wamp_register('.system.roster.query')
+    @wamp_register('system.roster.query')
+    def roster_query(self, roster_name, details):
+        extra = self.get_extra_from_details(details)
+        results = controller.roster_query(
+                    details.caller,
+                    details.caller_authid,
+                    details.caller_authrole,
+                    roster_name,
+                    extra
+                )
+
+        if results == False:
+            raise RequireRosterQueryPermissionError(f'Unable to query roster "{roster_name}"')
+
+        hits = results['records']
+        roster_list = []
+        for result in hits:
+            roster_list.append(result.dict_()['data'])
+
+        return roster_list
 
     #############################################################################
     # ORM

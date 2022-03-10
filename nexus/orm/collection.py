@@ -223,7 +223,8 @@ class NexusCollection(metaclass=NexusCollectionMeta):
             # might then mean that the file contains chars that would normally
             # be escaped. 
             if name_escape(key) != key_unescaped:
-                log.error(f"Skipping {key_fpath} for `{key}` as it appears to not be escaped. Fix and reindex the database!")
+                log.error(f"Skipping {key_fpath} for `{key}` as it appears to not be escaped. "\
+                            "Fix and reindex the database!")
                 continue
 
             key_obj = self[key]

@@ -16,12 +16,20 @@ __all__ = [
   'BaseComponent',
   'RequireDocumentationPermissionError',
   'InvalidLoginPermissionError',
+  'RequireRosterOpsPermissionError',
+  'RequireRosterQueryPermissionError',
 ]
 
 class InvalidLoginPermissionError(PermissionError):
     pass
 
 class RequireDocumentationPermissionError(PermissionError):
+    pass
+
+class RequireRosterOpsPermissionError(PermissionError):
+    pass
+
+class RequireRosterQueryPermissionError(PermissionError):
     pass
 
 def _wamp_decorate(uri_, method):

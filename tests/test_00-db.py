@@ -23,10 +23,83 @@ from izaber import initialize, config
 
 from nexus.domain import db
 from nexus.orm import RECORD_CACHE
+from nexus.orm.filter import Filter, build_filter
 
 initialize('nexus')
 
 def test_db():
+
+    #############################################################
+    # TEST BASIC FILTERING
+    #############################################################
+    junk = {
+      'a': 'b',
+      'c': 'd',
+      'e': 1,
+      'f': 3,
+      'g': [
+        'one',
+        'two',
+        'three',
+      ],
+    }
+    f = build_filter(['a', '=', 'b'])
+    assert f
+    assert f(junk)
+
+    assert build_filter(['g','has','one'])(junk)
+
+    assert build_filter([
+              'or',
+              [
+                ['g', 'has', 'one'],
+              ]
+            ])(junk)
+
+    res = build_filter([
+              'or',
+              [
+                ['g', 'has', 'five'],
+              ]
+            ])(junk)
+    assert not res
+
+    res = build_filter([
+              'or',
+              [
+                ['g', 'has', 'five'],
+                ['g', 'has', 'one'],
+              ]
+            ])(junk)
+    assert res
+
+    res = build_filter([
+              'and',
+              [
+                [ 'a', '=', 'b' ],
+                [ 'or', [
+                  ['g', 'has', 'five'],
+                  ['g', 'has', 'one'],
+                ]]
+              ]
+            ])(junk)
+    assert res
+
+    res = build_filter([
+              'and',
+              [
+                [ 'a', '=', 'c' ],
+                [ 'or', [
+                  ['g', 'has', 'five'],
+                  ['g', 'has', 'one'],
+                ]]
+              ]
+            ])(junk)
+    assert not res
+
+    #############################################################
+    # Role Handling
+    #############################################################
 
     # Let's create a basic role
     role_obj = db.roles.create_({

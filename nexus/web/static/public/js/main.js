@@ -33,6 +33,8 @@ const PERM_MAPPING = {
         'r': 'register',
         'p': 'publish',
         's': 'subscribe',
+        'o': 'roster_ops',
+        'q': 'roster_query',
       };
 
 const PERM_STR_MAPPING = {
@@ -40,6 +42,8 @@ const PERM_STR_MAPPING = {
         'register': 'r',
         'publish': 'p',
         'subscribe': 's',
+        'roster_ops': 'o',
+        'roster_query': 'q',
       };
 
 
@@ -74,12 +78,14 @@ function parsePerms( perms ) {
  * into an object with keys matching permissions
  * constants
  ****************************************************/
-    const matches = perms.matchAll(/([crsp])([+]?)/g);
+    const matches = perms.matchAll(/([crspoq])([+]?)/g);
     let permData = {
             'call': PERM_DENY,
             'register': PERM_DENY,
             'publish': PERM_DENY,
-            'subscribe': PERM_DENY
+            'subscribe': PERM_DENY,
+            'roster_ops': PERM_DENY,
+            'roster_query': PERM_DENY
         };
     for ( let match of matches ) {
 
@@ -1151,6 +1157,8 @@ class NexusRolePermission extends DataComponent {
         case 'register':
         case 'subscribe':
         case 'publish':
+        case 'roster_ops':
+        case 'roster_query':
           let permData = parsePerms(this.get('perms'));
           permData[k] = v;
           let perms = dumpPerms(permData);
@@ -1171,7 +1179,10 @@ class NexusRolePermission extends DataComponent {
       case 'register':
       case 'subscribe':
       case 'publish':
+      case 'roster_ops':
+      case 'roster_query':
         let permData = parsePerms(this.get('perms'));
+        console.log(permData);
         return permData[k]
       default:
         return super.get(k);

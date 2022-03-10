@@ -123,7 +123,7 @@ class Controller:
         role = user_obj.role or DEFAULT_ROLE
         return AuthenticationResult(user_obj, role, AUTH_SOURCE_LDAP)
 
-    def login(self, login, password, cbtid=None):
+    def login (self, login, password, cbtid=None):
         """ This logs a user into the system. This is two tier:
             1. Authenticates the user to verify credentials
             2. Creates the CookieSession tracking to ensure
@@ -173,6 +173,7 @@ class Controller:
         """ All this really does is remove the data associated with a
             session token
         """
+
         # FIXME This is probably not the right way of handling this
         # We should probably be doing something else...
         cookie_obj = db.get(cache_id,'cookie')
@@ -344,6 +345,109 @@ class Controller:
         db.load_data()
 
     #####################################################
+    # Roster Management/Querying
+    #####################################################
+
+    def roster_unregister_session(self, session_id):
+        """ Removes all roster entries associated with a particular session_id
+        """
+        results = db.query(
+                    collection_type='rosters',
+                    conditions=[
+                        ['session_id', '=', session_id]
+                    ],
+                )
+
+        for hit in results['records']:
+            hit.delete_()
+
+        return True
+
+    def roster_register(self, session_id, login, role, roster_name, roster_data, extra):
+
+        permission = self.authorize( login, role, roster_name, 'roster_ops', extra)
+
+        # Not allowed. Might be false
+        if not permission:
+            return False
+
+        if permission not in (
+                      PERM_ALLOW,
+                      PERM_REQUIRE_DOCUMENTATION
+                      ):
+            return False
+
+        # We got here. That means we're actually allowed to perform the
+        # action on this URI. This means we'll allow the logging of this
+        # action to the database
+        rec = db.rosters.register_(session_id, roster_name, roster_data)
+
+        # Return the result if successful
+        return rec
+
+
+    def roster_unregister(self, session_id, login, role, roster_name, extra):
+
+        permission = self.authorize( login, role, roster_name, 'roster_ops', extra)
+
+        # Not allowed. Might be false
+        if not permission:
+            return False
+
+        if permission not in (
+                      PERM_ALLOW,
+                      PERM_REQUIRE_DOCUMENTATION
+                      ):
+            return False
+
+        # We got here. That means we're actually allowed to perform the
+        # action on this URI. This means we'll allow the logging of this
+        # action to the database
+        rec = db.rosters.unregister_(session_id, roster_name)
+
+        # Return the result if successful
+        return rec
+
+    def roster_query(self, session_id, login, role, roster_name, extra):
+
+        # We need the session session token to be able to tag the
+        # session as reauthenticated
+        cache_id = extra.get('cache_id')
+        cookie_obj = db.get(cache_id,'cookie')
+        if not cookie_obj:
+            return False
+
+        permission = self.authorize( login, role, roster_name, 'roster_query', extra)
+
+        # Not allowed. Might be false
+        if not permission:
+            return False
+
+        if permission not in (
+                      PERM_ALLOW,
+                      PERM_REQUIRE_DOCUMENTATION
+                      ):
+            return False
+
+        # We got here. That means we're actually allowed to perform the
+        # action on this URI. This means we'll allow the query of this
+        # roster_name
+        results = db.query(
+                    collection_type='rosters',
+                    conditions=[
+                        ['name', '=', roster_name],
+                        ['or',[
+                                  ['visibility', '=', ['*', role]],
+                                  ['visibility', 'has', '*'],
+                                  ['visibility', 'has', role]
+                              ],
+                        ],
+                    ],
+                )
+
+        return results
+
+    #####################################################
     # URI Documentation
     #####################################################
     def system_document_set(self, 
@@ -371,7 +475,7 @@ class Controller:
         if not permission:
             return False
 
-        if permission not in(
+        if permission not in (
                       PERM_ALLOW,
                       PERM_REQUIRE_DOCUMENTATION
                       ):
@@ -390,15 +494,12 @@ class Controller:
 
         return True
 
-
     def system_document_get(self, match, uri, details=None):
         pass
-
 
     #####################################################
     # User Management
     #####################################################
-
 
     def user_get(self, login, yaml=False):
         """ Fetches information about a single user

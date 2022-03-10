@@ -19,6 +19,7 @@ def build_filter_3(f, op, v):
     elif '<' == op: return lambda r: deref(r,f) < v
     elif '<=' == op: return lambda r: deref(r,f) <= v
     elif 'in' == op: return lambda r: deref(r,f) in v
+    elif 'has' == op: return lambda r: v in deref(r,f)
     elif 'not in' == op: return lambda r: deref(r,f) not in v
     elif 'ilike' == op: return lambda r: v.lower() in deref(r,f).lower()
     elif 'not ilike' == op: return lambda r: v.lower() not in deref(r,f).lower()
@@ -109,3 +110,4 @@ class Filter:
             return self.filter_func(record)
         except Exception as ex:
             return False
+

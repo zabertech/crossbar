@@ -24,6 +24,8 @@ PERMS = [
     [ 'register', 'r' ],
     [ 'subscribe', 's' ],
     [ 'publish', 'p' ],
+    [ 'roster_ops', 'o' ],
+    [ 'roster_query', 'q' ],
 ]
 PERM_TO_NAME = {}
 PERM_TO_CODE = {}

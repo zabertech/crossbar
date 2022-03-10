@@ -641,7 +641,7 @@ class NexusDB:
         # Locate the parent. If none, we use root
         parent = self.get(parent_uid_b64)
         if not parent:
-            raise Lookuprror(f'Parent {repr(parent_uid_b64)} does not exist')
+            raise LookupError(f'Parent {repr(parent_uid_b64)} does not exist')
 
         # We need to know the collection target
         collection = parent.get_collection_(collection_attrib)

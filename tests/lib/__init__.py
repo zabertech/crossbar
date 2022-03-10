@@ -48,6 +48,7 @@ def reset_env():
                 f"db/cookies",
                 f"db/uris",
                 f"db/uuids",
+                f"db/rosters",
             ]
     for create_path in create_dirs:
         cpath = pathlib.Path(create_path)
@@ -63,13 +64,34 @@ def reset_env():
                 groupings = [ 90, 33, 29, 23, 20, 10, 10, 5 ]
             )
 
+def create_user(role=DEFAULT_ROLE):
+      # Create a random user
+      profile = faker.simple_profile()
+      password = secrets.token_hex(16)
+      login = profile['username']
+      user_rec = {
+              'login': login,
+              'plaintext_password': password,
+              'role': role,
+              'name': profile['name'],
+              'source': AUTH_SOURCE_LOCAL,
+              'email': profile['mail'],
+              'upn': f"{login}@nexus",
+          }
+
+      user_obj = db.users.create_(user_rec)
+
+      return login, password, user_rec
+
 def create_roles():
     # Create the set of default roles that we'll
     # need for testing
 
     roles = {
         'public': [
-                ['public.*', 'crsp']
+                ['public.*', 'crsp'],
+                ['system.roster.query', 'c'],
+                ['roster.*', 'oq'],
             ],
         'frontend': [
                 ['public.*', 'crsp'],
@@ -109,9 +131,12 @@ def create_roles():
                 # Documentation
                 ['system.document.*', 'c'],
 
+                # Roster Support
+                ['system.roster.*', 'c'],
+                ['roster.*', 'oq' ],
             ],
         'backend': [
-                ['*', 'crsp'],
+                ['*', 'crspoq'],
             ],
     }
 
