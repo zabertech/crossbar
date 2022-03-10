@@ -20,11 +20,13 @@ uuid: null
 # Permissions should be structured as a string string
 #
 # - : spacer
-# X : where X is a permission type of c, r, s, p
+# X : where X is a permission type of c, r, s, p, o, q
 #                 c: Allow Calling
 #                 r: Allow Registering
 #                 s: Allow Subscribing
 #                 p: Allow Publishing
+#                 o: Allow Roster Registration
+#                 q: Allow Roster Querying
 #     if the value is on its own, it represents PERM_ALLOW
 #     if structured like the following:
 # X+ : this implies that accessing X is allowed but requires
@@ -33,7 +35,7 @@ uuid: null
 #      registered in the uris orm
 #
 # Example of a perms are
-#    - c+
+#    - c+q
 #    - c-s-
 #    - cs
 #    - r!

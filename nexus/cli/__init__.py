@@ -363,12 +363,15 @@ def devdb_create(args):
                 ['com.izaber.wamp.public', 'cs'],
                 ['com.izaber.wamp.public.*', 'cs'],
                 ['com.izaber.wamp.discovery.*', 'csp'],
+                ['roster.*', 'q'],
             ],
         'frontend': [
                 ['com.izaber.wamp.*', 'crsp'],
+                ['roster.*','oq'],
             ],
         'backend': [
                 ['com.izaber.wamp.*', 'crsp'],
+                ['roster.*','oq'],
             ],
     }
 

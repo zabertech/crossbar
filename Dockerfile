@@ -5,10 +5,10 @@ LABEL maintainer="Aki Mimoto <aki@zaber.com>"
 
 USER root
 
-COPY dist/ /dist/
 COPY requirements-nexus.txt /requirements-nexus.txt
+COPY . /app
 
-RUN    mkdir /logs /data /app \
+RUN    mkdir /logs /data  \
     && ln -sf /logs /app/logs \
     && ln -sf /data /app/data \
     && apt-get update \
@@ -22,7 +22,8 @@ RUN    mkdir /logs /data /app \
                libssl-dev \
     && pip install -U -r /requirements-nexus.txt \
     && pip uninstall -y crossbar \
-    && pip install --no-deps --force-reinstall --no-cache-dir -I /dist/*.whl \
+    && cd /app \
+    && python setup.py develop --no-deps \
     && pip cache purge \
     && apt clean \
     && rm -rf ~/.cache \
@@ -31,11 +32,6 @@ RUN    mkdir /logs /data /app \
 WORKDIR /app
 
 ENTRYPOINT []
-
-COPY run-server.sh /app
-COPY ./tests/ /app/tests/
-
-WORKDIR /app
 
 EXPOSE 443 80
 

@@ -370,6 +370,8 @@ def devdb_create(args):
             ['com.izaber.wamp.discovery.kncknc', 'p'],
             ['com.izaber.wamp.discovery.whsthr', 's'],
             ['com.izaber.wamp./dashboard:.*:dashboardRegistry/.get', 'c'],
+            ['com.izaber.wamp.system.roster.query', 'c'],
+            ['roster.*', 'q'],
         ],
         'frontend': [
             ['com.izaber.wamp.public', 'crsp'],
@@ -422,11 +424,19 @@ def devdb_create(args):
             # Not sure if this should be allowed by default, but something is calling it from frontend
             ['com.izaber.wamp.notification.router.registerDestination', 'c'],
 
+            # Handlings roster requests
+            ['com.izaber.wamp.system.roster.register', 'c'],
+            ['com.izaber.wamp.system.roster.unregister', 'c'],
+            ['com.izaber.wamp.system.roster.query', 'c'],
+            ['roster.*', 'oq'],
+
             # Consumption Graph
             ['com.izaber.wamp.graphs.product_graph_consumption', 'c'],
+
         ],
         'backend': [
             ['com.izaber.wamp.*', 'crsp'],
+            ['roster.*', 'oq'],
         ],
     }
 

@@ -17,7 +17,7 @@ version: 1
 # Database Universal Unique Record ID
 uuid: null
 
-# UTC timestamp when the cookie was created
+# Timestamp when the cookie was created
 created: null
 
 # maximum lifetime of the tracking/authenticating cookie

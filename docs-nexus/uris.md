@@ -38,3 +38,11 @@ You can check test folder for examples uris and expected outcomes: [matching tes
 |`com.izaber.wamp.system.db.update(uuid list, updates)`|Amends specific record information identified by the uuid|
 |`com.izaber.wamp.system.db.delete(uuid list)`|Removes records that match the UUIDs|
 
+
+### Rosters
+| URI Pattern | Purpose |
+|-------------|---------|
+|`com.izaber.wamp.roster.register`| Register a roster entry for the session with the roster name |
+|`com.izaber.wamp.roster.unregister`| Unregisters a roster entry for the session with the roster name |
+|`com.izaber.wamp.roster.query`| Get all visible roster entries for the roster name |
+

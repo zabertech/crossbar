@@ -11,6 +11,7 @@ from nexus.domain.db.users import NexusUsers
 from nexus.domain.db.roles import NexusRoles
 from nexus.domain.db.cookies import NexusCookies
 from nexus.domain.db.uris import NexusURIs
+from nexus.domain.db.rosters import NexusRosters
 
 log = logging.getLogger('nexus-db')
 
@@ -20,10 +21,11 @@ log = logging.getLogger('nexus-db')
 
 class DB(NexusDB):
     _collections = {
-        'users': NexusUsers,
-        'roles': NexusRoles,
+        'users':   NexusUsers,
+        'roles':   NexusRoles,
         'cookies': NexusCookies,
-        'uris': NexusURIs,
+        'uris':    NexusURIs,
+        'rosters': NexusRosters,
     }
 
 ##################################################################
