@@ -437,7 +437,7 @@ class Controller:
                     conditions=[
                         ['name', '=', roster_name],
                         ['or',[
-                                  ['visibility', '=', ['*', role]],
+                                  ['visibility', 'in', ['*', role]],
                                   ['visibility', 'has', '*'],
                                   ['visibility', 'has', role]
                               ],
