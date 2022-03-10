@@ -102,6 +102,7 @@ The suite of available operations is fairly standard, there shouldn't be that ma
 |`field`| `<`         | `str`, `int` | Is Less Than |
 |`field`| `is`        | `str`, `int` | Is the same as |
 |`field`| `in`        | `list` | Field value is in the list |
+|`field`| `has`        | `str`, `int` | If field value is a list, checks if any elements match the right-side value `if right in (left): True`|
 |`field`| `not in`    | `list` | Field value not found in list |
 |`field`| `like`     | `str` | Field value contains the string<sup>1</sup> |
 |`field`| `not like` | `str` | Field value does not contain the string<sup>1</sup> |
