@@ -1,6 +1,6 @@
 from .common import *
 
-from nexus.constants import PERM_DENY
+from nexus.constants import PERM_DENY, PERM_ALLOW
 from nexus.domain.auth import TrieNode
 
 import logging
@@ -127,8 +127,18 @@ class NexusRoles(_AuthorizedNexusCollection):
             role_obj.uri_authorizer_(force=True)
 
     def uri_permissions_(self, role, uri, action):
-        if role not in self:
+
+        # If the role is a trusted role, we will automatically allow the action
+        # however, that user may have disabled the action via their authorization
+        # key so we have to validate that still.
+        # FIXME: Eventually `trust` should be a part of the role record or managed
+        #        with a carte blanche permission set
+        if role in ('trust','trusted'):
+            return PERM_ALLOW
+
+        elif role not in self:
             return PERM_DENY
+
         return self[role].authorize_(uri, action)
 
     def vacuum_(self):

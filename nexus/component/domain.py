@@ -31,12 +31,6 @@ from nexus.log import log
 from twisted.internet.defer import inlineCallbacks, DeferredList
 from autobahn.wamp.exception import ApplicationError
 
-# FIXME: Eventually this should be a part of the role record
-def is_trusted(details):
-    if details.caller_authrole in('trusted','trust'):
-        return True
-    return False
-
 def extract_peer(transport):
     # Get the peer address of the session. We'll get them via the following order
     # 1. x-real-ip
@@ -511,6 +505,15 @@ class DomainComponent(BaseComponent):
     @wamp_register('.system.roster.register')
     @wamp_register('system.roster.register')
     def roster_register(self, roster_name, data, visibility=None, details=None):
+
+        # Default the visibility
+        if visibility is None:
+            visibility = '*'
+
+        # If the visibility is something like False or '', throw an error
+        if not visibility:
+            raise ValueError(f'visibility must be a format like `['*']`')
+
         extra = self.get_extra_from_details(details)
         reg_rec = controller.roster_register(
                     details.caller,

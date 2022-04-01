@@ -31,10 +31,9 @@ RUN    mkdir /logs /data  \
 
 WORKDIR /app
 
-ENTRYPOINT []
-
 EXPOSE 443 80
 
 ENTRYPOINT []
+
 CMD /app/run-server.sh
 
