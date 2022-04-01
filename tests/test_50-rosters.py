@@ -38,11 +38,15 @@ def test_connect():
         client2 = connect(login2, password2)
         assert client2
 
-
         # Create a third user to get information about this roster entry
         login3, password3, user_rec3 = create_user(role='public')
         client3 = connect(login3, password3)
         assert client3
+
+        # Create a forth user that should have full access to everything
+        login4, password4, user_rec4 = create_user(role='trust')
+        client4 = connect(login4, password4)
+        assert client4
 
         ###############################################################
         # Add ourselves to the roster for the `test_roster` key
@@ -60,6 +64,7 @@ def test_connect():
         assert result
         assert len(result) == 1
         assert result[0]['test'] == 'data'
+        assert len(result[0].keys()) == 1
 
         ###############################################################
         # We don't want public users to have access to the data
@@ -67,6 +72,37 @@ def test_connect():
         result = client3.call(ROSTER_QUERY, ROSTER_KEY)
         assert not result
         assert len(result) == 0
+
+        ###############################################################
+        # We want to ensure that trust and trusted have full access
+        ###############################################################
+        result = client4.call(ROSTER_QUERY, ROSTER_KEY)
+        assert result
+        assert len(result) == 1
+        assert result[0]['test'] == 'data'
+
+        ###############################################################
+        # Let's amend the data with some new stuff
+        ###############################################################
+        dummy_data['test'] = 'mo data'
+        result = client.call(ROSTER_REGISTER, ROSTER_KEY, dummy_data, visibility=['frontend'])
+        assert result
+
+        ###############################################################
+        # We should only see the current data and nothing else
+        ###############################################################
+        result = client2.call(ROSTER_QUERY, ROSTER_KEY)
+        assert result
+        assert len(result) == 1
+        assert result[0]['test'] == 'mo data'
+        assert len(result[0].keys()) == 1
+
+        ###############################################################
+        # Reset the data
+        ###############################################################
+        dummy_data['test'] = 'data'
+        result = client.call(ROSTER_REGISTER, ROSTER_KEY, dummy_data, visibility=['frontend'])
+        assert result
 
         ###############################################################
         # We shouldn't be allowed to add a roster entry for anything

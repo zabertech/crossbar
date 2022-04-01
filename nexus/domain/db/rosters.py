@@ -60,7 +60,7 @@ class NexusRosters(_AuthorizedNexusCollection):
         if rec:
             for k in ['visbility','data']:
                 if k in roster_data:
-                    rec.data[k] = roster_data[k]
+                    rec[k] = roster_data[k]
             rec.save_()
 
         # No record exists, let's create it

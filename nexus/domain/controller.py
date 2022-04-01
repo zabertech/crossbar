@@ -200,9 +200,12 @@ class Controller:
         if not permission:
             return PERM_DENY
 
+        elif permission == PERM_ALLOW:
+            return PERM_ALLOW
+
         # If the role is public we will not have any special permissions
         # attached
-        if role == 'public':
+        elif role == 'public':
             return PERM_ALLOW
 
         # Now we check to see if the authenticated user has permission to
@@ -414,6 +417,7 @@ class Controller:
         # session as reauthenticated
         cache_id = extra.get('cache_id')
         cookie_obj = db.get(cache_id,'cookie')
+
         if not cookie_obj:
             return False
 
@@ -423,26 +427,32 @@ class Controller:
         if not permission:
             return False
 
-        if permission not in (
+        elif permission not in (
                       PERM_ALLOW,
                       PERM_REQUIRE_DOCUMENTATION
                       ):
             return False
+
+        # By default we look for the roster name
+        conditions = [ ['name', '=', roster_name] ]
+
+        # Unless the role is trusted, we also force the search on the
+        # role visibility
+        # FIXME: need to handle the trusted status via the role record
+        if role not in ('trust', 'trusted'):
+            conditions.append(['or',[
+                                      ['visibility', 'in', ['*', role]],
+                                      ['visibility', 'has', '*'],
+                                      ['visibility', 'has', role]
+                                  ],
+                            ])
 
         # We got here. That means we're actually allowed to perform the
         # action on this URI. This means we'll allow the query of this
         # roster_name
         results = db.query(
                     collection_type='rosters',
-                    conditions=[
-                        ['name', '=', roster_name],
-                        ['or',[
-                                  ['visibility', 'in', ['*', role]],
-                                  ['visibility', 'has', '*'],
-                                  ['visibility', 'has', role]
-                              ],
-                        ],
-                    ],
+                    conditions=conditions,
                 )
 
         return results
