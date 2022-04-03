@@ -134,7 +134,7 @@ class NexusRoles(_AuthorizedNexusCollection):
         # FIXME: Eventually `trust` should be a part of the role record or managed
         #        with a carte blanche permission set
         if role in ('trust','trusted'):
-            return PERM_ALLOW
+            return perm_allow(action)
 
         elif role not in self:
             return PERM_DENY

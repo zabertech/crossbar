@@ -197,16 +197,10 @@ class Controller:
         # up user) and will crash out.
         permission = db.roles.uri_permissions_(role, uri, action)
 
+        # If permission is False-y it just means it's a blanket NOT ALLOWED
+        # so we'll just short-circuit out
         if not permission:
             return PERM_DENY
-
-        elif permission == PERM_ALLOW:
-            return PERM_ALLOW
-
-        # If the role is public we will not have any special permissions
-        # attached
-        elif role == 'public':
-            return PERM_ALLOW
 
         # Now we check to see if the authenticated user has permission to
         # access this URI
