@@ -1,4 +1,6 @@
-ARG BASE_CONTAINER=crossbario/crossbar:pypy-slim-amd64
+#ARG BASE_CONTAINER=crossbario/crossbar:pypy-slim-amd64
+ARG BASE_CONTAINER=crossbario/crossbar:pypy-slim-amd64-22.3.1
+
 FROM $BASE_CONTAINER
 
 LABEL maintainer="Aki Mimoto <aki@zaber.com>"
