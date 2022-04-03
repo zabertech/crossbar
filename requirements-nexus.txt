@@ -11,4 +11,5 @@ schedule
 ruamel.yaml
 ruyaml
 
-
+py-cid
+base58>=2.1.1

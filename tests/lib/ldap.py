@@ -12,7 +12,6 @@ from faker import Faker
 locale_list = ['en-US', 'de_DE', 'en_US', 'fr_FR', 'ja_JP']
 
 fake = Faker(locale_list)
-Faker.seed(0)
 
 COUNTER = 1123
 

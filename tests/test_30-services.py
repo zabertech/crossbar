@@ -11,6 +11,8 @@ def hello_reauth(invoke, name):
     return f"reauth {name}"
 
 def test_connect():
+    reset_env()
+    create_roles()
     p = launch_nexus()
 
     try:
@@ -70,12 +72,12 @@ def test_connect():
         # TEST URI: com.izaber.wamp.ad.users
         users_res = client.call('com.izaber.wamp.ad.users')
         assert users_res
-        assert len(users_res) == 100
+        assert len(users_res) == 100, f"Got {len(users_res)} users rather than 100"
 
         # TEST URI: com.izaber.wamp.ad.ldap.groups
         groups_res = client.call('com.izaber.wamp.ad.groups')
         assert groups_res
-        assert len(groups_res) == 10
+        assert len(groups_res) == 10, f"Got {len(groups_res)} groups rather than 10"
 
     finally:
         p.terminate()
