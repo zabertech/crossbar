@@ -5,6 +5,7 @@ __all__ = [
   'authorize_owned_update',
   'authorize_owned_create',
   'authorize_owned_delete',
+  'perm_allow',
   'perms_str',
   'str_perms',
 ]
@@ -13,7 +14,7 @@ import re
 
 from nexus.constants import PERM_DENY, PERM_REQUIRE_ELEVATED, PERM_ALLOW, \
                             PERM_REQUIRE_DOCUMENTATION, \
-                            PERMS, TRAIT_TO_CODE, PERM_REGEX, PERM_TO_NAME, \
+                            PERMS, TRAIT_TO_CODE, PERM_REGEX, PERM_TO_CODE, PERM_TO_NAME, \
                             TRAITS, TRAIT_TO_NAME
 from nexus.orm import NexusRecord, NexusCollection
 
@@ -213,6 +214,13 @@ def authorize_owned_delete(owner='owner'):
                 raise PermissionError(f"{user_obj.login} does not own record {repr(uid_b64)}")
         return kwargs
     return _authorize_owned_delete
+
+
+def perm_allow(perm_name):
+    # This creates a permission object that just allows access
+    if perm_name not in PERM_TO_CODE:
+          raise ValueError(f"Unknown Permission {perm_name}")
+    return Perm(PERM_TO_CODE[perm_name], PERM_ALLOW)
 
 ##################################################
 # Permission string parsers
