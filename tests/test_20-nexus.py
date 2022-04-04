@@ -258,6 +258,21 @@ def test_connect():
             client3.call(WHOAMI_URI)
 
         ###############################################################
+        # Connect as Anonymous User
+        ###############################################################
+
+        # Do a valid connection
+        anon_client = swampyer.WAMPClient(
+                        url="ws://localhost:8282/ws",
+                        realm="izaber",
+                    ).start()
+        assert anon_client
+
+        # This should work
+        reg_res = anon_client.register('public.allowed', hello)
+        assert reg_res == swampyer.WAMP_REGISTERED
+
+        ###############################################################
         # Change role of user
         ###############################################################
 

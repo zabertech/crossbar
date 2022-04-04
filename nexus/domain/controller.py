@@ -204,7 +204,18 @@ class Controller:
 
         # Now we check to see if the authenticated user has permission to
         # access this URI
-        user_obj = db.users[login]
+        try:
+            user_obj = db.users[login]
+
+        except KeyError:
+            # Crossbar generates a fake login for any anonymous user. Something like:
+            # login = "EWSQ-V775-49PS-H3KT-SRNH-ATXY". This creates a problem when we
+            # try and lookup the user to see if they are disabled. So here we check
+            # if the user exists and if it doesn't, we're assuming that it's an anon
+            # session (only way we'd get here) and simply return the permission because
+            # of it.
+            return permission
+
         if not user_obj.enabled:
             return PERM_DENY
 
