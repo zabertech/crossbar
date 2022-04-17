@@ -450,9 +450,13 @@ class Node(object):
         self._boot_complete = Deferred()
 
         # startup the node personality ..
-        self.log.info('{func}::NODE_BOOT_BEGIN', func=hltype(self.personality.Node.boot))
+        self.log.info('{func}::NODE_BOOT_BEGIN[node_id="{node_id}"]',
+                      node_id=hlid(self._node_id),
+                      func=hltype(self.personality.Node.boot))
         res = yield self.personality.Node.boot(self)
-        self.log.info('{func}::NODE_BOOT_COMPLETE', func=hltype(self.personality.Node.boot))
+        self.log.info('{func}::NODE_BOOT_COMPLETE[node_id="{node_id}"]',
+                      func=hltype(self.personality.Node.boot),
+                      node_id=hlid(self._node_id))
 
         # notify observers of boot completition
         self._boot_complete.callback(res)
@@ -875,7 +879,42 @@ class Node(object):
     def _configure_native_worker_proxy(self, worker_logname, worker_id, worker):
         yield self._configure_native_worker_common(worker_logname, worker_id, worker)
 
+        # set up backend connections on the proxy
+
+        for i, connection_name in enumerate(worker.get('connections', {})):
+            self.log.debug(
+                "Starting connection {index}: {name}",
+                index=i,
+                name=connection_name,
+            )
+            yield self._controller.call(
+                'crossbar.worker.{}.start_proxy_connection'.format(worker_id),
+                connection_name,
+                worker['connections'].get(connection_name, {}),
+            )
+
+        # set up realms and roles on the proxy
+
+        for i, realm_name in enumerate(worker.get('routes', {})):
+            roles = worker['routes'][realm_name]
+            for role_id, connections in roles.items():
+                if not isinstance(connections, list):
+                    connections = [connections]  # used to be a single string, now a list of strings
+                for connection_id in connections:
+                    self.log.debug(
+                        "Starting proxy realm route {realm}, {role} to {connection}",
+                        realm=realm_name,
+                        role=role_id,
+                        connection=connection_id,
+                    )
+                    yield self._controller.call(
+                        'crossbar.worker.{}.start_proxy_realm_route'.format(worker_id),
+                        realm_name,
+                        {role_id: connection_id},
+                    )
+
         # start transports on proxy
+
         for i, transport in enumerate(worker.get('transports', [])):
 
             if 'id' in transport:
@@ -942,37 +981,3 @@ class Node(object):
                 worker_logname=worker_logname,
                 transport_id=hlid(transport_id),
             )
-
-        # set up backend connections on the proxy
-
-        for i, connection_name in enumerate(worker.get('connections', {})):
-            self.log.debug(
-                "Starting connection {index}: {name}",
-                index=i,
-                name=connection_name,
-            )
-            yield self._controller.call(
-                'crossbar.worker.{}.start_proxy_connection'.format(worker_id),
-                connection_name,
-                worker['connections'].get(connection_name, {}),
-            )
-
-        # set up realms and roles on the proxy
-
-        for i, realm_name in enumerate(worker.get('routes', {})):
-            roles = worker['routes'][realm_name]
-            for role_id, connections in roles.items():
-                if not isinstance(connections, list):
-                    connections = [connections]  # used to be a single string, now a list of strings
-                for connection_id in connections:
-                    self.log.debug(
-                        "Starting proxy realm route {realm}, {role} to {connection}",
-                        realm=realm_name,
-                        role=role_id,
-                        connection=connection_id,
-                    )
-                    yield self._controller.call(
-                        'crossbar.worker.{}.start_proxy_realm_route'.format(worker_id),
-                        realm_name,
-                        {role_id: connection_id},
-                    )

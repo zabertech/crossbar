@@ -169,7 +169,7 @@ class PendingAuth:
                            func=hltype(self._init_function_authenticator),
                            authrole=hlid(self._authenticator_role))
         else:
-            self._authenticator_role = self._authrole or 'trusted'
+            self._authenticator_role = self._authrole
             self.log.debug('{func} authenticator role "{authrole}" set from session',
                            func=hltype(self._init_function_authenticator),
                            authrole=hlid(self._authenticator_role))
@@ -185,18 +185,23 @@ class PendingAuth:
                 message="explicit role <{}> on realm <{}> configured for dynamic authenticator does not exist".format(
                     self._authenticator_role, self._authenticator_realm))
 
-        self.log.debug(
+        self.log.info(
             'initializing authenticator service session for realm "{realm}" with authrole "{authrole}" .. {func}',
             realm=hlid(self._authenticator_realm),
             authrole=hlid(self._authenticator_role),
             func=hltype(self._init_dynamic_authenticator))
 
-        # authenticator session (where the authenticator procedure is registered and called)
+        # get a dynamic authenticator session (where the dynamic authenticator procedure is registered and called):
+        #
+        #   * lives on a realm/role explicitly given
+        #   * authenticates implicitly (the implementation in the router or proxy container is responsible
+        #      for setting up authentication of the dynamic authenticator session client transport)
+        #
         d_connected = self._realm_container.get_service_session(self._authenticator_realm, self._authenticator_role)
         d_ready = Deferred()
 
         def connect_success(session):
-            self.log.debug(
+            self.log.info(
                 'authenticator service session {session_id} attached to realm "{realm}" with authrole "{authrole}" {func}',
                 func=hltype(self._init_dynamic_authenticator),
                 session_id=hlid(session._session_id),

@@ -55,6 +55,8 @@ get-pip.py
 .db-controller
 .db-mrealm-*
 .xbrnetwork
+test/test_automated/.test/
+
 
 
 
