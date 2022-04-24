@@ -1,35 +1,55 @@
-#ARG BASE_CONTAINER=crossbario/crossbar:pypy-slim-amd64
-ARG BASE_CONTAINER=crossbario/crossbar:pypy-slim-amd64-22.3.1
+ARG BASE_CONTAINER=ubuntu:20.04
 
 FROM $BASE_CONTAINER
 
 LABEL maintainer="Aki Mimoto <aki@zaber.com>"
 
-USER root
+# Let's sit in the src directory by default
+WORKDIR /app
 
-COPY requirements-nexus.txt /requirements-nexus.txt
-COPY . /app
+USER root
 
 RUN    mkdir /logs /data  \
     && ln -sf /logs /app/logs \
     && ln -sf /data /app/data \
     && apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-               git \
-               ca-certificates \
-               curl \
-               libsasl2-dev \
-               libldap2-dev \
-               libunwind-dev \
-               libssl-dev \
-    && pip install -U -r /requirements-nexus.txt \
-    && pip uninstall -y crossbar \
-    && cd /app \
-    && python setup.py develop --no-deps \
-    && pip cache purge \
-    && apt clean \
-    && rm -rf ~/.cache \
-    && rm -rf /var/lib/apt/lists/*
+            git \
+            build-essential \
+            ca-certificates \
+            curl \
+            python3-distutils \
+            libsasl2-dev \
+            libldap2-dev \
+            libunwind-dev \
+            python3.8-dev \
+            python3.8-venv \
+            libssl-dev \
+            tmux \
+            vim-nox
+
+# Copy over the data files
+COPY . /app
+
+# Install all the required bits for 
+RUN        apt install -y software-properties-common \
+        && add-apt-repository ppa:pypy/ppa \
+        && apt update \
+        && DEBIAN_FRONTEND=noninteractive apt install -y pypy3 pypy3-dev libsnappy-dev \
+        # Pip is handy to have around
+        && curl https://bootstrap.pypa.io/get-pip.py -o /root/get-pip.py \
+        && pypy3 /root/get-pip.py \
+        # Start installing crossbar
+        && pypy3 -m pip install --upgrade pip setuptools ujson \
+        && pypy3 -m pip install -U -r /app/requirements-latest.txt \
+        && pypy3 -m pip install -U -r /app/requirements-nexus.txt \
+        && cd /app \
+        && pypy3 setup.py develop --no-deps \
+        # Done and now we can cleanup
+        && pypy3 -m pip cache purge \
+        && apt clean \
+        && rm -rf ~/.cache \
+        && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
