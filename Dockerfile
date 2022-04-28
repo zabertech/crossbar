@@ -12,6 +12,8 @@ USER root
 RUN    mkdir /logs /data  \
     && ln -sf /logs /app/logs \
     && ln -sf /data /app/data \
+    # Use the internal package library for faster building
+    && perl -p -i -e "s/archive.ubuntu.com/mirror.izaber.com/g" /etc/apt/sources.list \
     && apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
             git \
