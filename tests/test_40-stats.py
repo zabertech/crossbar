@@ -15,20 +15,7 @@ def test_connect():
 
     try:
         # Create a random user
-        profile = faker.simple_profile()
-        password = secrets.token_hex(16)
-        login = profile['username']
-        user_rec = {
-                'login': login,
-                'plaintext_password': password,
-                'role': DEFAULT_ROLE,
-                'name': profile['name'],
-                'source': AUTH_SOURCE_LOCAL,
-                'email': profile['mail'],
-                'upn': f"{login}@nexus",
-            }
-
-        user_obj = db.users.create_(user_rec)
+        login, password, user_rec, user_obj = create_user()
 
         # Do a valid connection
         client = swampyer.WAMPClientTicket(
@@ -41,17 +28,7 @@ def test_connect():
 
         # Create 10 random users
         for i in range(10):
-            profile = faker.simple_profile()
-            user_rec = {
-                    'login': profile['username'],
-                    'plaintext_password': secrets.token_hex(16),
-                    'role': DEFAULT_ROLE,
-                    'name': profile['name'],
-                    'source': AUTH_SOURCE_LOCAL,
-                    'email': profile['mail'],
-                    'upn': f"{profile['username']}@nexus",
-                }
-            user_obj = db.users.create_(user_rec)
+            create_user()
 
         ###############################################################
         ###############################################################

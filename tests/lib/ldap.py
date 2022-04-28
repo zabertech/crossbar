@@ -7,11 +7,9 @@ import uuid
 import random
 from pprint import pprint
 
-from faker import Faker
+import lib.common as common
 
 locale_list = ['en-US', 'de_DE', 'en_US', 'fr_FR', 'ja_JP']
-
-fake = Faker(locale_list)
 
 COUNTER = 1123
 
@@ -28,7 +26,7 @@ def clean_header(s):
 def fake_group():
     global COUNTER
     COUNTER += 1
-    job = re.sub(r"[,()']", "", fake.job())
+    job = re.sub(r"[,()']", "", common.job())
     group_acct = f"group-{clean_header(job)}"
     group_name = f"{job} Group"
     dn = f"CN={group_name},OU=Groups,OU=Example,DC=ad,DC=example,DC=com"
@@ -57,13 +55,11 @@ def fake_user():
     global COUNTER
     COUNTER += 1
 
-    profile = fake.profile()
+    profile = common.profile()
     login = profile['username']
 
+    firstname, lastname, name = common.name()
 
-    firstname = re.sub(r"[,()]","",fake.first_name())
-    lastname = re.sub(r"[,()]","",fake.last_name())
-    name = f"{firstname} {lastname}"
     dn = f"{name},OU=Users,OU=Example,DC=ad,DC=example,DC=com"
 
     user_rec = {

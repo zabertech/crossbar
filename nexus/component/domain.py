@@ -21,6 +21,8 @@ import time
 import schedule
 import traceback
 
+from izaber import config
+
 import nexus
 from nexus.constants import PERM_ALLOW, PERM_REQUIRE_DOCUMENTATION, WAMP_LOCAL_REGISTRATION_PREFIX
 from nexus.orm import *
@@ -772,9 +774,16 @@ class DomainComponent(BaseComponent):
         try:
             schedule.clear('component')
 
-            # Do it once before we start
-            self.sync()
-            self.vacuum()
+            # If the configuration is setup to skip the sync/vacuum
+            # nexus:
+            #    db:
+            #      skip_vacuum: True
+            #      skip_sync: True
+            nexus_config = config.get('nexus',{})
+            if not nexus_config.get('skip_sync'):
+                self.sync()
+            if not nexus_config.get('skip_vacuum'):
+                self.vacuum()
 
             # Then schedule it
             schedule.every(10).minutes.do(self.cron_vacuum).tag('component')

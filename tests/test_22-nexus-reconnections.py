@@ -25,20 +25,7 @@ def test_connect():
 
     try:
         # Create a random user
-        profile = faker.simple_profile()
-        password = secrets.token_hex(16)
-        login = profile['username']
-        user_rec = {
-                'login': login,
-                'plaintext_password': password,
-                'role': DEFAULT_ROLE,
-                'name': profile['name'],
-                'source': AUTH_SOURCE_LOCAL,
-                'email': profile['mail'],
-                'upn': f"{login}@nexus",
-            }
-
-        user_obj = db.users.create_(user_rec)
+        login, password, user_rec, user_obj = create_user()
 
         # Do a valid connection
         client = connect(login, password)
@@ -47,24 +34,10 @@ def test_connect():
         # Create 10 random users
         user_recs = {}
         for i in range(10):
-            profile = faker.simple_profile()
-            new_login = profile['username']
-            new_password = secrets.token_hex(16)
-            user_rec = {
-                    'login': new_login,
-                    'plaintext_password': new_password,
-                    'role': DEFAULT_ROLE,
-                    'name': profile['name'],
-                    'source': AUTH_SOURCE_LOCAL,
-                    'email': profile['mail'],
-                    'upn': f"{new_login}@nexus",
-                }
-            user_obj = db.users.create_(user_rec)
 
-            user_recs[new_login] = new_password
-
-            user_rec['session'] = connect(new_login, new_password)
-            user_recs[new_login] = user_rec
+            login, password, user_rec, user_obj = create_user()
+            user_rec['session'] = connect(login, password)
+            user_recs[login] = user_rec
 
         ###############################################################
         # Rapidly register and unregister a uri via session kill to find out if we're
