@@ -380,8 +380,8 @@ def devdb_create(args):
             ['roster.*', 'q'],
         ],
         'frontend': [
-            ['com.izaber.wamp.public', 'crsp'],
-            ['com.izaber.wamp.frontend', 'crsp'],
+            ['com.izaber.wamp.public.*', 'crsp'],
+            ['com.izaber.wamp.frontend.*', 'crsp'],
             ['com.izaber.wamp.reauth', 'c+r+'],
 
             # Authentication
@@ -548,7 +548,7 @@ def testdb_create(args):
             user_rec = {
                 'login': login,
                 'plaintext_password': new_password,
-                'role': '',
+                'role': role_name,
                 'name': name,
                 'source': 'local',
                 'email': f"{login}@nexus",
