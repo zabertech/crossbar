@@ -29,22 +29,22 @@ def test_connect():
 
     try:
         # Create a random user
-        login, password, user_rec = create_user(role='backend')
+        login, password, user_rec, user_obj = create_user(role='backend')
         client = connect(login, password)
         assert client
 
         # Create a second user to get information about this roster entry
-        login2, password2, user_rec2 = create_user()
+        login2, password2, user_rec2, user_obj2 = create_user()
         client2 = connect(login2, password2)
         assert client2
 
         # Create a third user to get information about this roster entry
-        login3, password3, user_rec3 = create_user(role='public')
+        login3, password3, user_rec3, user_obj3 = create_user(role='public')
         client3 = connect(login3, password3)
         assert client3
 
         # Create a forth user that should have full access to everything
-        login4, password4, user_rec4 = create_user(role='trust')
+        login4, password4, user_rec4, user_obj4 = create_user(role='trust')
         client4 = connect(login4, password4)
         assert client4
 

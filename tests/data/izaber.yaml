@@ -5,6 +5,8 @@ default:
   nexus: 
     db:
       path: 'db'
+      skip_sync: False
+      skip_vacuum: False
     ldap:
       server:
         host: file://ldap-mock-data.yaml

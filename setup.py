@@ -90,7 +90,8 @@ setup(
     entry_points={
         # CLI entry function
         'console_scripts': [
-            'crossbar = crossbar:run'
+            'crossbar = crossbar:run',
+            'nexus = nexus.cli:run',
         ]
     },
     packages=find_packages(),

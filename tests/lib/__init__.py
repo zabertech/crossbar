@@ -21,9 +21,6 @@ from izaber import initialize, config
 from izaber.startup import request_initialize, initializer
 from izaber.date import DateTimeUTC, DateTimeLocal
 
-from faker import Faker
-faker = Faker()
-
 import passlib.hash
 import secrets
 import pytest
@@ -32,6 +29,7 @@ from nexus.constants import *
 from nexus.domain import *
 from nexus.orm.common import RECORD_CACHE
 
+import lib.common as common
 import lib.ldap
 
 def reset_env():
@@ -65,23 +63,23 @@ def reset_env():
             )
 
 def create_user(role=DEFAULT_ROLE):
-      # Create a random user
-      profile = faker.simple_profile()
-      password = secrets.token_hex(16)
-      login = profile['username']
-      user_rec = {
-              'login': login,
-              'plaintext_password': password,
-              'role': role,
-              'name': profile['name'],
-              'source': AUTH_SOURCE_LOCAL,
-              'email': profile['mail'],
-              'upn': f"{login}@nexus",
-          }
+    # Create a random user
+    profile = common.profile()
+    password = secrets.token_hex(16)
+    login = profile['username']
+    user_rec = {
+          'login': login,
+          'plaintext_password': password,
+          'role': role,
+          'name': profile['name'],
+          'source': AUTH_SOURCE_LOCAL,
+          'email': profile['mail'],
+          'upn': f"{login}@nexus",
+      }
 
-      user_obj = db.users.create_(user_rec)
+    user_obj = db.users.create_(user_rec)
 
-      return login, password, user_rec
+    return login, password, user_rec, user_obj
 
 def create_roles():
     # Create the set of default roles that we'll

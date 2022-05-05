@@ -12,6 +12,10 @@ USER root
 RUN    mkdir /logs /data  \
     && ln -sf /logs /app/logs \
     && ln -sf /data /app/data \
+    # Use the internal package library for faster building
+    # Disabled for now since it seems DNS gets broken in CI and I don't want to
+    # over-complicate things
+    # && perl -p -i -e "s/archive.ubuntu.com/mirror.izaber.com/g" /etc/apt/sources.list \
     && apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
             git \

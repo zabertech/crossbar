@@ -29,21 +29,7 @@ def test_connect():
 
     try:
         # Create a random user
-        profile = faker.simple_profile()
-        login = profile['username']
-        password = secrets.token_hex(16)
-        name = faker.name
-        user_rec = {
-                'login': login,
-                'plaintext_password': password,
-                'role': DEFAULT_ROLE,
-                'name': profile['name'],
-                'source': AUTH_SOURCE_LOCAL,
-                'email': profile['mail'],
-                'upn': f"{login}@nexus",
-            }
-
-        user_obj = db.users.create_(user_rec)
+        login, password, user_rec, user_obj = create_user()
 
         assert user_obj
         assert user_obj.login == login
@@ -160,7 +146,7 @@ def test_connect():
         apikeys = []
         for i in range(10):
             apikey_obj = user_obj.apikeys.create_({
-                                'description': faker.sentence(),
+                                'description': common.sentence(),
                             })
             apikeys.append(apikey_obj)
 
@@ -202,7 +188,7 @@ def test_connect():
         assert apikeys['hits'] == 10
 
         # Now we can test the wamp based key creation
-        key_desc = faker.sentence()
+        key_desc = common.sentence()
 
         localtz = pytz.timezone('America/Vancouver')
         now = datetime.datetime.now(localtz)

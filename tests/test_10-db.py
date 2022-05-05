@@ -40,21 +40,7 @@ def test_db():
             })
 
     # Create a random user
-    profile = faker.simple_profile()
-    login = profile['username']
-    password = secrets.token_hex(16)
-    name = faker.name
-    user_rec = {
-            'login': login,
-            'plaintext_password': password,
-            'role': DEFAULT_ROLE,
-            'name': profile['name'],
-            'source': AUTH_SOURCE_LOCAL,
-            'email': profile['mail'],
-            'upn': f"{login}@nexus",
-        }
-
-    user_obj = db.users.create_(user_rec)
+    login, password, user_rec, user_obj = create_user()
 
     assert user_obj
     assert user_obj.login == login
@@ -228,7 +214,7 @@ def test_db():
 
     # Create without expiry
     apikey = user_obj.apikeys.create_({
-                    'description': faker.sentence(),
+                    'description': common.sentence(),
                 })
 
     key_login_res = controller.login(login, apikey.plaintext_key)
@@ -246,7 +232,7 @@ def test_db():
     future = now + datetime.timedelta(seconds=0.5)
 
     apikey = user_obj.apikeys.create_({
-                    'description': faker.sentence(),
+                    'description': common.sentence(),
                     'expires': str(future),
                 })
     key_login_res = controller.login(login, apikey.plaintext_key)
@@ -268,7 +254,7 @@ def test_db():
 
     # Create a key with specialized permissions
     apikey = user_obj.apikeys.create_({
-                    'description': faker.sentence(),
+                    'description': common.sentence(),
                     'permissions': [{
                                 'uri': 'com.izaber.wamp.public.allowed',
                                 'perms': 'c',
