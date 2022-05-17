@@ -178,3 +178,4 @@ data/dhparam4096.pem
 tests/data/ldap-mock-data.yaml
 
 data/izaber.yaml
+data/node.log
