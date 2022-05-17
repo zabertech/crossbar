@@ -1139,28 +1139,14 @@ class RouterSession(RouterSessionBase):
         if self.authprovider == "programcode":
             return
 
-        '''
-        # We should always have authextra but we'll just log a message
-        # here just in case
-        if not self._authextra:
-            log.warning(f"onLeave without authextra called. {details}")
-            return
-
-        if not self._authextra.get('cache_id'):
-            log.warning(f"onLeave without cache_id called. {details}")
-            return
-
-        '''
-
         if not self._cbtid:
             return
 
         # If we have a cbtid, it means that there's an associated cookie
         # or some sort of persistant state store.
-        cookie_obj = db.cookies[self._cbtid]
+        cookie_obj = db.cookies.get_(self._cbtid)
         if not cookie_obj:
-            self.log.warning(f"onLeave detected cookie but no cookie found.")
-            session_obj.delete_()
+            self.log.error(f"onLeave cookie '{self._cbtid}' not found in DB. Failing gracefully. This should not happen, was the record deleted manually?")
             return
 
     def close(self):

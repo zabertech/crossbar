@@ -3,12 +3,6 @@ import os
 import pathlib
 import shutil
 
-# Setup for proper pathing for libs and data
-dir_path = os.path.dirname(os.path.realpath(__file__))
-os.chdir(dir_path)
-sys.path.insert(1, f"{dir_path}/../../lib")
-os.chdir(f"{dir_path}/../data")
-
 # Now we can continue on with the normal load process
 import datetime
 import pytz
@@ -17,13 +11,22 @@ import subprocess
 import socket
 from pprint import pprint
 
-from izaber import initialize, config
-from izaber.startup import request_initialize, initializer
-from izaber.date import DateTimeUTC, DateTimeLocal
-
 import passlib.hash
 import secrets
 import pytest
+
+# Setup for proper pathing for libs and data
+LIB_PATH = pathlib.Path(__file__).resolve().parent
+TEST_PATH = LIB_PATH.parent
+DATA_PATH = TEST_PATH / 'data'
+
+# Setup for proper pathing for libs and data
+sys.path.insert(1, LIB_PATH)
+os.chdir(DATA_PATH)
+
+from izaber import initialize, config
+from izaber.startup import request_initialize, initializer
+from izaber.date import DateTimeUTC, DateTimeLocal
 
 from nexus.constants import *
 from nexus.domain import *
@@ -31,6 +34,7 @@ from nexus.orm.common import RECORD_CACHE
 
 import lib.common as common
 import lib.ldap
+from lib.launcher import *
 
 def reset_env():
     """ Does a complete reset of the directories
@@ -153,31 +157,6 @@ def create_roles():
         role_obj.save_()
     db.roles.refresh_uri_authorizer_()
 
-def launch_nexus():
-    """ This starts a copy of nexus on the local server
-    """
-    cx_env = os.environ
-    current_path = pathlib.Path(__file__).resolve()
-    cx_env['PYTHONPATH'] = str(current_path.parent.parent.parent / "lib")
-    log_level = cx_env.get('LOG_LEVEL', 'warn')
-    cx_process =  subprocess.Popen([
-                                "crossbar",
-                                "start",
-                                "--loglevel", log_level,
-                            ], env=cx_env)
-
-    # Wait till port 8282 is open. Give up after 60 seconds
-    a_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    location = ("127.0.0.1", 8282)
-    for i in range(60):
-        time.sleep(1)
-        result_of_check = a_socket.connect_ex(location)
-        if result_of_check == 0:
-            break
-    else:
-        print(f"Port is not open. Giving up though")
-
-    return cx_process
 
 @initializer('nexus-testing', before=['nexus-db'])
 def load_config(**options):
