@@ -1,8 +1,11 @@
-from lib import *
-
 # use autobahn for now since swampyer doesn't have cookie support
 import asyncio
+import txaio
+txaio.use_asyncio()
+
 from autobahn.asyncio.wamp import ApplicationSession, ApplicationRunner
+
+from lib import *
 
 import swampyer
 

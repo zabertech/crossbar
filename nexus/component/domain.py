@@ -46,10 +46,15 @@ def extract_peer(transport):
     if http_headers:
         peer = http_headers.get( 'x-real-ip',
                   http_headers.get( 'x-forwarded-for' ) )
-        if peer:
+        if peer and ',' in peer:
             peer = peer.split(',')[0].strip()
+
     if not peer and transport.get('peer'):
-        peer = transport['peer'].split(':')[1]
+        peer = transport['peer']
+        # peer can also be `unix` which doesn't have an associated
+        # IP breakdown
+        if ':' in peer:
+            peer = peer.split(':')[1]
 
     return peer or 'unknown'
 

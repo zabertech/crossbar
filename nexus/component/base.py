@@ -89,7 +89,7 @@ def wamp_subscription_handler_factory(component, handler, *args, **kwargs):
             log.error(f"ARGS: {repr(args)}")
             log.error(f"KWARGS: {repr(kwargs)}")
             log.error(f"DETAILS: {repr(details)}")
-            log.error(traceback.format_exc())
+            log.error(f"TRACEBACK: {traceback.format_exc()}")
             # The preference is to not simply hide the error, however, it seems that
             # by throwing the error, it stops the thread altogether which then causes
             # authenticate to fail. That's even less desireable so we just fail out
@@ -122,6 +122,7 @@ def wamp_register_handler_factory(component, handler, *args, **kwargs):
             log.warn(f"ARGS: {repr(args)}")
             log.warn(f"KWARGS: {repr(kwargs)}")
             log.warn(f"DETAILS: {repr(details)}")
+            log.error(f"TRACEBACK: {traceback.format_exc()}")
             raise ApplicationError("com.izaber.wamp.error", str(ex))
     return wrap
 

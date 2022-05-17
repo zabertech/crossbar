@@ -57,7 +57,7 @@ def launch_nexus(**kwargs):
     # Launch the crossbar server and it will log to LOG_FPATH
     cx_env = os.environ
     cx_env['PYTHONPATH'] = str(LIB_PATH)
-    log_level = cx_env.get('LOG_LEVEL', 'warn')
+    log_level = cx_env.get('LOG_LEVEL', 'info')
     cx_process =  subprocess.Popen([
                                 "crossbar",
                                 "start",
