@@ -64,7 +64,6 @@ class NexusDB:
         """
         self.base_path_ = pathlib.Path(base_path).resolve()
         self.load_data()
-        self.reindex_uuids()
 
     def validate_uid_b64(self, uid_b64):
         """ Ensure that the characters of the uid are within the allowed set
