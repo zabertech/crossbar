@@ -201,6 +201,12 @@ def test_connect():
         client_inactive_cbtid = client_inactive_cookies['cbtid'].value
         assert client_inactive_cbtid 
 
+        # The active client's cookie should be available as it was
+        # kept alive through the process
+        active_cookie_obj = db.cookies[client_active_cbtid]
+        assert active_cookie_obj
+        assert not active_cookie_obj.expired_()
+
         # Now for basically 5 seconds do mutltiple iterations
         # of running vacuum with 1 session disconnect and another
         # remaining connected
@@ -217,7 +223,7 @@ def test_connect():
         # The active client's cookie should be available as it was
         # kept alive through the process
         active_cookie_obj = db.cookies[client_active_cbtid]
-        assert active_cookie_obj 
+        assert active_cookie_obj
         assert not active_cookie_obj.expired_()
 
     finally:

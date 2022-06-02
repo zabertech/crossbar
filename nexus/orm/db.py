@@ -135,7 +135,7 @@ class NexusDB:
             raise ValueError(f"UID {repr(uid_b64)} invalid.")
 
         # Convert the base64 encoded uid into a hashed path
-        matches = re.findall('(..?)', uid_b64)
+        matches = re.findall('(.{2,5})', uid_b64)
         link_path = '/'.join(matches)
         hashed_path = self.uuids_path_ / link_path
         return hashed_path
@@ -319,6 +319,55 @@ class NexusDB:
         object.__setattr__(self, 'record_from_path', record_from_path)
         object.__setattr__(self, 'record_search_globs', search_globs)
 
+    def migrate_uuids(self):
+        """ In versions up to 3.0.2022327, UUID hashing was done using 2 character hash
+            directories. So they would look like:
+
+            .../data/db/uuids/Ih/zy/-B/ms/Qo/mb/9r/Aa/uk/FK/8A
+
+            This created the issue where it would be up to 11 * num_records
+            in the system. When the number of cookies goes beyond
+            11 * 30,000 records, the number of inodes starts to collapse.
+            We then switched to the 5 character hashes so more like:
+
+            .../data/db/uuids/IBi4H/u59St/S_D_X/Nrv8C/6Q
+
+            Which reduces the inode usage down to 5 * num_records
+
+            This is to allow us to convert any detected 2 character hash
+        """
+
+        # Now we can validate that the UUIDs are mapped properly
+        for entry in self.uuids_path_.iterdir():
+
+            # Only look at directories that have 2 character entries
+            if len(entry.name) != 2:
+                continue
+            if not entry.is_dir():
+                continue
+
+            # Now descend in and try and change the pointer to the new hash format
+            for root, dnames, fnames in os.walk(entry, topdown=False):
+                root_path = pathlib.Path(root)
+                uuid_base = "".join(str(root_path.relative_to(self.uuids_path_)).split('/'))
+                for suffix in fnames:
+                    uid_b64 = uuid_base + suffix
+                    link_fpath = root_path / suffix
+                    target_fpath = link_fpath.resolve()
+                    hashed_fpath = self.hashed_path(uid_b64)
+
+                    # Create the target link using the new hashed path
+                    self.link(uid_b64, target_fpath)
+                    log.debug(f"Relinking: {uid_b64}")
+
+                    # Remove the old hashed path
+                    link_fpath.unlink()
+
+                if len(list(root_path.iterdir())) == 0:
+                      log.debug(f"Removing: {root}")
+                      root_path.rmdir()
+
+
     def reindex_uuids(self):
         """ Validate that all UUID references to the correct place and
             builds new links if required.
@@ -344,6 +393,10 @@ class NexusDB:
             - Record does not parse as YAMLEXT
             - UUID points to record that has a different UUID
         """
+
+
+        # Perform any conversions required from older database index formats
+        self.migrate_uuids()
 
         results = {
           'status': 'OK',
@@ -500,10 +553,45 @@ class NexusDB:
             results['actions'].append([ 'NEWUUID', uuid, record_ts ])
 
         # Now we can validate that the UUIDs are mapped properly
-        for root, dir, fnames in os.walk(self.uuids_path_):
-            if not fnames: continue
+        uuid_root_path = base_path / "db/uuids"
+        for root, dnames, fnames in os.walk(self.uuids_path_):
+
+            # If this is an empty directory, let's remove this directory
+            entries = len(dnames + fnames)
+            log.info(f"{root} : {entries}")
+            if not fnames and not dnames:
+                log.info(f"Removing empty directory '{root}'")
+                os.rmdir(root)
+                continue
+
+            # Skip any directories that do not have "files" since those
+            # directories are just a part of the earlier hash path
+            if not fnames:
+                continue
+
             uuid_path = pathlib.Path(root)
-            uuid_base = "".join(root.split('/')[-10:])
+            uuid_part = uuid_path.relative_to(uuid_root_path)
+            uuid_elements = str(uuid_part).split('/')
+
+            # At one point we were using xx/xx/xx/xx/xx/xx/xx based file hashing
+            # that uses a whole lot more inodes than xxxxx/xxxxx/xxxxx/xx so we've
+            # switched to that. The problem with that is that now we have two
+            # different modes that we have to support (for now). We'll accomodate
+            # that for awhile with this if statement
+
+            # Try and acquire the base64 UUID from the file path. Each directory element should
+            # be a part of the UUID. There's a small chance that the entry found is not
+            # a UUID link and just a random file so we do some extra checking here for the
+            # number of elements. Otherwise we could just get away with doing a "".join(elements)
+            if len(uuid_elements) in [
+                                          10, # Old style 2 character hashes create 10 elements
+                                          4   # new style 2-5 character hashes create 4 elements
+                                      ]:
+                uuid_base = "".join(uuid_elements)
+            else:
+                log.warning(f"Invalid UUID path: {uuid_path}. Expected 4 or 10 elements, got {len(uuid_elements)}")
+                continue
+
             for fname in fnames:
                 uuid = uuid_base + fname
                 fpath = uuid_path / fname
@@ -524,7 +612,7 @@ class NexusDB:
                 # Check if the symlink target exists
                 if not fpath.exists():
                     target_fpath = os.readlink(fpath)
-                    log.warning(f"UUID:{uuid} index {fpath} symlink target to '{target_fpath}' does not exist!")
+                    log.warning(f"UUID:{uuid} index {fpath} symlink target to '{target_fpath}' does not exist! Unlinking.")
                     results['warnings'].append(['UUID_TARGET_NO_EXISTS', uuid])
                     results['actions'].append([ 'REMOVE', uuid, str(fpath.resolve()) ])
                     fpath.unlink()
