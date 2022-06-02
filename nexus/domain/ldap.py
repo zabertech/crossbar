@@ -10,6 +10,8 @@ from izaber.startup import request_initialize, initializer
 
 from nexus.orm import *
 
+from nexus.log import log
+
 """
 LDAPService has three modes of operation.
 
@@ -114,6 +116,7 @@ class LDAPServer:
         """
         try:
             if not self.server:
+                log.warn(f"LDAP No server found.")
                 return False
             conn = Connection(
                         self.server,
@@ -125,6 +128,7 @@ class LDAPServer:
                     )
             return True
         except Exception as ex:
+            log.warn(f"LDAP auth fail: "{login}" due to {ex}")
             return False
 
     def connect(self):

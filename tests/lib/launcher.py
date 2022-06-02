@@ -36,7 +36,7 @@ def nexus_is_up():
         return True
     return False
 
-def launch_nexus(**kwargs):
+def launch_nexus(file_log=None, **kwargs):
     """ This starts a copy of nexus on the local server
     """
     global LOG_READ
@@ -54,17 +54,32 @@ def launch_nexus(**kwargs):
           LOG_FPATH.parent / f"node-{ctimestamp:%Y%m%d-%H%M%S}.log"
         )
 
-    # Launch the crossbar server and it will log to LOG_FPATH
+    # How we're going to launch crossbar
     cx_env = os.environ
-    cx_env['PYTHONPATH'] = str(LIB_PATH)
     log_level = cx_env.get('LOG_LEVEL', 'info')
-    cx_process =  subprocess.Popen([
-                                "crossbar",
-                                "start",
-                                "--loglevel", log_level,
-                                "--logdir", str(DATA_PATH),
-                                "--logtofile"
-                            ], env=cx_env, **kwargs)
+    launch_args = [
+                    "crossbar",
+                    "start",
+                    "--loglevel", log_level,
+                ]
+
+    # If we're logging to file, setup the flag properly
+    if 'NO_LOG_FILE' in cx_env:
+        pass
+    elif 'LOG_FILE' in cx_env:
+        launch_args.extend([
+                    "--logtofile",
+                    "--logdir", cx_env['LOG_FILE'],
+                ])
+    elif file_log or file_log is None:
+        launch_args.extend([
+                    "--logtofile",
+                    "--logdir", str(DATA_PATH),
+                ])
+
+    # Launch the crossbar server and it will log to LOG_FPATH
+    cx_env['PYTHONPATH'] = str(LIB_PATH)
+    cx_process =  subprocess.Popen(launch_args, env=cx_env, **kwargs)
 
     # Wait till port 8282 is open. Give up after 60 seconds
     for i in range(60):

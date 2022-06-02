@@ -17,6 +17,8 @@ So basically the core functionality that lets users/admins use and manage the sy
 
 from nexus.component.base import *
 
+import os
+import sys
 import time
 import schedule
 import traceback
@@ -30,6 +32,7 @@ from nexus.domain import *
 from nexus.cron import cron
 from nexus.log import log
 
+from twisted.internet import threads
 from twisted.internet.defer import inlineCallbacks, DeferredList
 from autobahn.wamp.exception import ApplicationError
 
@@ -64,6 +67,7 @@ REGISTRATIONS = {}
 class DomainComponent(BaseComponent):
     last_sync = None
 
+
     #############################################################################
     # Session Tracking
     # See: https://github.com/wamp-proto/wamp-proto/blob/master/rfc/text/advanced/ap_session_meta_api.md
@@ -83,6 +87,9 @@ class DomainComponent(BaseComponent):
 
     @wamp_subscribe('wamp.session.on_leave')
     def session_on_leave(self, session_id, details):
+        self.session_delete(session_id)
+
+    def session_delete(self, session_id):
         # Remove all roster entries for this ession
         controller.roster_unregister_session(session_id)
 
@@ -269,16 +276,26 @@ class DomainComponent(BaseComponent):
         """
         self.sync()
 
-    def vacuum(self):
+    def _vacuum(self, session_ids):
         """ Runs the process that cleans up the database
         """
+
+        # Now that we're in the child process, we can start doing the long run process
         start_time = time.time()
         log.info(f"Running system vacuum")
 
         # First we need to touch all NexusCookies records of all
         # sessions currently active
-        for session_id, data in SESSIONS.items():
+        for session_id, data in list(SESSIONS.items()):
             extra = data.get('details',{}).get('authextra')
+
+            # Check if the session we're tracking is actually active
+            if session_id not in session_ids:
+                self.session_delete(session_id)
+                continue
+
+            # Internal component sessions do not have a cache_id so we
+            # just go ahead and skip it
             cache_id = extra.get('cache_id')
             if not cache_id:
                 continue
@@ -287,6 +304,7 @@ class DomainComponent(BaseComponent):
                 cookie_obj = db.get(cache_id,'cookie')
             except Exception as ex:
                 log.warn(f"cache_id {cache_id} didn't resolve to a cookie! <{ex}>")
+
                 continue
 
             try:
@@ -302,12 +320,28 @@ class DomainComponent(BaseComponent):
             entry.delete_()
 
         # Let the control do the rest of the vacuuming across the system
-        controller.vacuum()
+        # Running controller.vacuum is quite slow and if it's done without
+        # wrapping it into a thread, it will block other requests from going 
+        # through. We do this so that we can both vacuum and service user
+        # requests at the same time. In the future, it may make sense to
+        # wrap this into something that puts it into a separate subprocess
+        def slow_vacuum():
+            controller.vacuum()
+            elapsed = time.time() - start_time
+            log.info(f"System vacuum took {elapsed} seconds")
+        threads.deferToThread(slow_vacuum)
 
-        elapsed = time.time() - start_time
-        log.info(f"System vacuum took {elapsed} seconds")
-
-        return elapsed
+    def vacuum(self):
+        # Get a list of currently active sessions
+        try:
+            def errHandler(failure):
+                log.error(f"Vacuum Failed because: {failure}")
+            deferred = self.call('wamp.session.list')
+            deferred.addCallback(self._vacuum)
+            deferred.addErrback(errHandler)
+        except Exception as ex:
+            log.error(f"Vacuum Exception! {ex}")
+        return True
 
     @wamp_register('.system.vacuum')
     @wamp_register('system.vacuum')
@@ -770,24 +804,39 @@ class DomainComponent(BaseComponent):
         for res in super().onJoin(details):
             yield res
 
+        # Wipe old sessions away if anything is here
+        for session_id, data in list(SESSIONS.items()):
+            self.session_delete(session_id)
         SESSIONS.clear()
+        log.info(f"Cleared old sessions")
 
         # We setup a scheduler to run every 5 minutes to clean up the database
         # and do other periodic tasks. This just schedules, the actual running of
         # the code gets done in the nexus.cron.Cron object which executes on its
         # own separate thread.
         try:
+            log.info(f"Setting up internal cron schedule")
             schedule.clear('component')
 
-            # If the configuration is setup to skip the sync/vacuum
+            # By default nexus does not do a vacuum and sync upon start.
+            #
+            # - vacuum ensures we don't have crufy UUID and so on around
+            # - sync pulls all users from ldap into the system
+            #
+            # Usually this isn't an issue and UUID reindexing can take a
+            # horrible amount of time. Best bet is to invoke reindex from
+            # the `nexus` CLI tool and sync can be run normally from
+            # the cron job
+            #
             # nexus:
             #    db:
-            #      skip_vacuum: True
-            #      skip_sync: True
+            #      startup_vacuum: True
+            #      startup_sync: True
             nexus_config = config.get('nexus',{})
-            if not nexus_config.get('skip_sync'):
+            db_config = nexus_config.get('db', {})
+            if db_config.get('startup_sync'):
                 self.sync()
-            if not nexus_config.get('skip_vacuum'):
+            if db_config.get('startup_vacuum'):
                 self.vacuum()
 
             # Then schedule it
