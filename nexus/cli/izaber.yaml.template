@@ -18,6 +18,8 @@ default:
 #        group_filter: '(&(objectCategory=group)(name=*))'
 
     db:
+        startup_vacuum: False
+        startup_sync: False
         path: ./data/db
 
   crossbar: 
@@ -160,10 +162,6 @@ default:
     #################################################################
       components:
       - classname: nexus.component.domain.DomainComponent
-        realm: izaber
-        role: trusted
-        type: class
-      - classname: nexus.component.utils.UtilitiesComponent
         realm: izaber
         role: trusted
         type: class

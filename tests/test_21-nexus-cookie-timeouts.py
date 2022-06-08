@@ -214,6 +214,7 @@ def test_connect():
             time.sleep(1)
             print("VACUUM:", i)
             client_active.call('com.izaber.wamp.system.vacuum')
+            time.sleep(1)
 
         # The dead client's cookie should have been vacuumed by the
         # process

@@ -3,12 +3,19 @@ import os
 import pathlib
 import secrets
 import json
+import logging
 
-# Setup for proper pathing for libs and data
-#dir_path = os.path.dirname(os.path.realpath(__file__))
-#cwd = pathlib.Path(os.getcwd())
-#os.chdir(dir_path)
-#sys.path.insert(1, f"{dir_path}/..")
+import shutil
+import docopt
+import getpass
+
+from izaber import initialize, config
+
+# Now we can load the full set of izaber/nexus libraries
+from nexus.log import log
+from nexus.domain import controller
+from nexus.domain.db import db
+from nexus.constants import AUTH_SOURCE_LOCAL
 
 DOC_TEMPLATE = """
 Usage:
@@ -43,6 +50,7 @@ Usage:
 {extra_commands}
 Options:
   -h --help     Show help
+  --log_level=<log_level>   Debug Level [default: warn]
   --cbdir=<cbdir>   Nexus `data` Directory [default: {data_path}]
 {extra_options}
 Description:
@@ -50,17 +58,6 @@ Description:
   Manages the nexus internal file database
 {extra_description}
 """
-
-import shutil
-import docopt
-import getpass
-
-from izaber import initialize, config
-
-# Now we can load the full set of izaber/nexus libraries
-from nexus.domain import controller
-from nexus.domain.db import db
-from nexus.constants import AUTH_SOURCE_LOCAL
 
 class Commands:
     verbs = ['list', 'info', 'create', 'edit', 'delete', 'dump', 'load', 'sync']
@@ -571,6 +568,7 @@ class Runner:
         if doc_template is None:
             doc_template = DOC_TEMPLATE.format(**args)
         args = docopt.docopt(doc_template)
+
         return args
 
     def handle_args(self, args):
@@ -622,6 +620,12 @@ class Runner:
                     extra_description = extra_description,
                     data_path = data_path,
                 )
+
+        # Set logging parameters
+        log_level = args['--log_level'] or 'warn'
+        logging.basicConfig(level=log_level.upper())
+
+        log.set_logger(logging.getLogger('nexus-cli'))
 
         # We'll put ourselves in the proper directory
         cwd = os.getcwd()

@@ -2,14 +2,9 @@ from nexus.orm.common import *
 from nexus.orm.collection import *
 from nexus.orm.record import *
 from nexus.orm.filter import *
+from nexus.log import log
 
 import os
-import logging
-
-log = logging.getLogger('nexus-orm')
-
-logging.basicConfig(level=logging.WARNING)
-
 
 ##################################################
 # Nexus DB
@@ -121,6 +116,16 @@ class NexusDB:
             # we simply trim it off
             uid_b64 = base64.urlsafe_b64encode(uid).decode('utf8')[:-2]
 
+            # We do not accept any hashes that start with '-' since that can
+            # confuse the shell lexer. So with a file like
+            # /data/db/cookies/-_reFwFmcA5Z4UaaQZZ-OfhxHHRVJ7ge.yaml will
+            # make the code think that '_re...' is a switch for a command
+            if uid_b64 == '-':
+                continue
+
+            # Now verify if the hash already exists in the system. If it
+            # doesn't already exist, since we now have a unique, new
+            # uuid, break out of the loop and return the value
             hash_path = self.hashed_path( uid_b64 )
             if not hash_path.exists():
                 break
@@ -356,17 +361,26 @@ class NexusDB:
                     target_fpath = link_fpath.resolve()
                     hashed_fpath = self.hashed_path(uid_b64)
 
-                    # Create the target link using the new hashed path
-                    self.link(uid_b64, target_fpath)
-                    log.debug(f"Relinking: {uid_b64}")
+                    # We only move forward if the target exists
+                    if target_fpath.exists():
+
+                        # Create the target link using the new hashed path
+                        self.link(uid_b64, target_fpath)
+                        log.debug(f"Relinking: {uid_b64}")
+                    else:
+                        log.warning(f"UUID {uid_b64} to {target_fpath} missing. Non-critical")
 
                     # Remove the old hashed path
                     link_fpath.unlink()
+                    log.debug(f"Removed old link {link_fpath}")
 
+                # If the directory is empty, remove it to free up an inode
                 if len(list(root_path.iterdir())) == 0:
-                      log.debug(f"Removing: {root}")
-                      root_path.rmdir()
-
+                      try:
+                          log.debug(f"Removing: {root}")
+                          root_path.rmdir()
+                      except FileNotFoundError:
+                          pass
 
     def reindex_uuids(self):
         """ Validate that all UUID references to the correct place and
@@ -393,7 +407,6 @@ class NexusDB:
             - Record does not parse as YAMLEXT
             - UUID points to record that has a different UUID
         """
-
 
         # Perform any conversions required from older database index formats
         self.migrate_uuids()
@@ -491,7 +504,7 @@ class NexusDB:
             if len(records_fpaths) == 1:
 
                 # If everything matches then we're golden. Move on
-                if index_record_fpath == records_fpaths[0]:
+                if index_record_fpath == records_fpaths[0] and uuid_fpath.exists():
                     continue
 
                 # If the uuid_fpath doesn't exist but there's one correct target
@@ -558,7 +571,6 @@ class NexusDB:
 
             # If this is an empty directory, let's remove this directory
             entries = len(dnames + fnames)
-            log.info(f"{root} : {entries}")
             if not fnames and not dnames:
                 log.info(f"Removing empty directory '{root}'")
                 os.rmdir(root)

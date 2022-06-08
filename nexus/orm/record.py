@@ -251,7 +251,11 @@ class NexusRecord(metaclass=NexusRecordMeta):
         # configuration then preload all values
         defaults = self.defaults_()
         try:
-            self.data_rec_ = yaml_load(self.yaml_fpath_.open('r'))
+            # Sending the filehandle directly into yaml_load caused an issue
+            # where it would leave the filehandle open. We do this to force
+            # the handle to close.
+            with self.yaml_fpath_.open('r') as yaml_fh:
+                self.data_rec_ = yaml_load(yaml_fh)
             for k,v in defaults.items():
                 self.data_rec_.setdefault(k,v)
             self.yaml_fpath_mtime = self.yaml_fpath_.stat().st_mtime

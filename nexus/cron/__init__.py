@@ -7,6 +7,7 @@ from izaber import config
 from izaber.startup import request_initialize, initializer
 
 from nexus.domain import db, controller
+from nexus.log import log
 
 class Cron(threading.Thread):
 
@@ -15,7 +16,7 @@ class Cron(threading.Thread):
             try:
                 schedule.run_pending()
             except Exception as ex:
-                print(f"Error in cron job thread: {ex}")
+                log.error(f"Error in cron job thread: {ex}")
                 traceback.print_exc()
             time.sleep(1)
 

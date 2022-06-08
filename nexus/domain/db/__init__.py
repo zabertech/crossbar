@@ -187,7 +187,7 @@ def load_config(**options):
         db.load_config(db_path)
         end_time = time.time()
         elapsed = end_time - start_time
-        log.info(f"Database initialization/review took {elapsed}s")
+        log.debug(f"Database initialization/review took {elapsed}s")
     except Exception as ex:
         log.error(f"Unable to reindex database because {ex}")
         import traceback

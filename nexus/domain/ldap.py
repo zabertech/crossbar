@@ -116,7 +116,7 @@ class LDAPServer:
         """
         try:
             if not self.server:
-                log.warn(f"LDAP No server found.")
+                log.warning(f"LDAP No server found.")
                 return False
             conn = Connection(
                         self.server,
@@ -128,7 +128,7 @@ class LDAPServer:
                     )
             return True
         except Exception as ex:
-            log.warn(f"LDAP auth fail: "{login}" due to {ex}")
+            log.warning(f"LDAP auth fail: '{login}' due to <{ex}>")
             return False
 
     def connect(self):

@@ -3,6 +3,7 @@ import json
 import sys
 import os
 import re
+import logging
 
 __all__ = ['log', 'Logger']
 
@@ -11,7 +12,7 @@ class Logger:
     _log = None
 
     def __init__(self):
-        pass
+        self._log = None
 
     def set_logger(self, logger):
         self._log = logger
@@ -43,9 +44,6 @@ class Logger:
         s = s.replace('{',r'{{')
         s = s.replace('}',r'}}')
 
-        with open("/tmp/blah.log", "a") as f:
-            f.write(f"{s}\n")
-
         # If we don't have a logging function defined we just print it out
         if not self._log:
             print(s)
@@ -60,10 +58,16 @@ class Logger:
               'critical',
               'error',
               'warn',
+              'warning',
               'info',
               'debug',
               'trace',
             ]:
+
+            # Sometimes we're dealing with txaio.tx.Logger which doesn't
+            # have warning. So we do a remap here
+            if k == 'warning':
+                k = 'warn'
             return lambda *a, **kw: self.log_action(k, *a, **kw)
 
 log = Logger()

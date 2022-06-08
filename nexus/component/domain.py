@@ -23,7 +23,7 @@ import time
 import schedule
 import traceback
 
-from izaber import config
+from izaber import config, initialize
 
 import nexus
 from nexus.constants import PERM_ALLOW, PERM_REQUIRE_DOCUMENTATION, WAMP_LOCAL_REGISTRATION_PREFIX
@@ -116,7 +116,7 @@ class DomainComponent(BaseComponent):
         # If there's no ticket (password) provided we simply drop out
         password = options.get('ticket')
         if not password:
-            log.warn(f"NOPASSWORD: Rejected {authid}")
+            log.warning(f"NOPASSWORD: Rejected {authid}")
             raise InvalidLoginPermissionError('Invalid Login')
             raise ApplicationError('com.izaber.wamp.error.invalidlogin','Invalid Login')
 
@@ -129,7 +129,7 @@ class DomainComponent(BaseComponent):
 
         res = controller.login(authid, password, cbtid)
         if not res:
-            log.warn(f"PASSWORDERROR: Rejected {authid}")
+            log.warning(f"PASSWORDERROR: Rejected {authid}")
             raise InvalidLoginPermissionError('Invalid Login')
 
         cookie_obj = res['cookie_obj']
@@ -267,7 +267,7 @@ class DomainComponent(BaseComponent):
         log.info(f"Running system sync")
         controller.sync()
         elapsed = time.time() - start_time
-        log.info(f"System sync took {elapsed} seconds")
+        log.info(f"System sync took {elapsed:0.02f} seconds")
 
     @wamp_register('.system.sync')
     @wamp_register('system.sync')
@@ -276,13 +276,10 @@ class DomainComponent(BaseComponent):
         """
         self.sync()
 
-    def _vacuum(self, session_ids):
-        """ Runs the process that cleans up the database
-        """
 
-        # Now that we're in the child process, we can start doing the long run process
+    def _vacuum_sessions(self, session_ids):
         start_time = time.time()
-        log.info(f"Running system vacuum")
+        log.info(f"Running session vacuum")
 
         # First we need to touch all NexusCookies records of all
         # sessions currently active
@@ -303,14 +300,13 @@ class DomainComponent(BaseComponent):
             try:
                 cookie_obj = db.get(cache_id,'cookie')
             except Exception as ex:
-                log.warn(f"cache_id {cache_id} didn't resolve to a cookie! <{ex}>")
-
+                log.warning(f"cache_id {cache_id} didn't resolve to a cookie! <{ex}>")
                 continue
 
             try:
                 cookie_obj.touch_()
             except Exception as ex:
-                log.warn(f"Unable to touch cookie {cache_id} <{ex}>")
+                log.warning(f"Unable to touch cookie {cache_id} <{ex}>")
 
         # Now we need to validate that all current roster entries are
         # actually alive by comparing the results against the session list
@@ -319,6 +315,24 @@ class DomainComponent(BaseComponent):
                 continue
             entry.delete_()
 
+        elapsed = time.time() - start_time
+        log.info(f"Session vacuum took {elapsed:0.04f} seconds")
+
+    def vacuum_sessions(self):
+        # Get a list of currently active sessions
+        try:
+            def errHandler(failure):
+                log.error(f"Vacuum Sessions Failed because: {failure}")
+            deferred = self.call('wamp.session.list')
+            deferred.addCallback(self._vacuum_sessions)
+            deferred.addErrback(errHandler)
+        except Exception as ex:
+            log.error(f"Vacuum Sessions Exception! {ex}")
+        return True
+
+    def vacuum(self):
+        """ Runs the process that cleans up the database
+        """
         # Let the control do the rest of the vacuuming across the system
         # Running controller.vacuum is quite slow and if it's done without
         # wrapping it into a thread, it will block other requests from going 
@@ -326,29 +340,29 @@ class DomainComponent(BaseComponent):
         # requests at the same time. In the future, it may make sense to
         # wrap this into something that puts it into a separate subprocess
         def slow_vacuum():
+            # Now that we're in the child process, we can start doing the long run process
+            start_time = time.time()
+            log.info(f"Running system vacuum")
+
+            # While this is pretty quick to run, since we can, we'll run it
+            # within a separate thread
+            self.vacuum_sessions()
+
+            # This full vacuum is actually slow where it goes through all the
+            # stuff like UUID matching and such
+            log.info(f"Running slow part of vacuum")
             controller.vacuum()
             elapsed = time.time() - start_time
-            log.info(f"System vacuum took {elapsed} seconds")
+            log.info(f"System vacuum took {elapsed:0.02f} seconds")
         threads.deferToThread(slow_vacuum)
-
-    def vacuum(self):
-        # Get a list of currently active sessions
-        try:
-            def errHandler(failure):
-                log.error(f"Vacuum Failed because: {failure}")
-            deferred = self.call('wamp.session.list')
-            deferred.addCallback(self._vacuum)
-            deferred.addErrback(errHandler)
-        except Exception as ex:
-            log.error(f"Vacuum Exception! {ex}")
-        return True
 
     @wamp_register('.system.vacuum')
     @wamp_register('system.vacuum')
     def system_vacuum(self, details):
         """ Runs the process that cleans up the database
         """
-        return self.vacuum()
+        self.vacuum()
+        return True
 
     #############################################################################
     # LDAP
@@ -784,6 +798,11 @@ class DomainComponent(BaseComponent):
     # Cron tasks
     #############################################################################
 
+    def cron_vacuum_sessions(self):
+        """ Runs the process that removes old sessions
+        """
+        self.vacuum_sessions()
+
     def cron_vacuum(self):
         """ Runs the process that cleans up the database
         """
@@ -801,8 +820,8 @@ class DomainComponent(BaseComponent):
     @inlineCallbacks
     def onJoin(self, details):
 
-        for res in super().onJoin(details):
-            yield res
+        for value in super().onJoin(details):
+            yield value
 
         # Wipe old sessions away if anything is here
         for session_id, data in list(SESSIONS.items()):
@@ -815,7 +834,6 @@ class DomainComponent(BaseComponent):
         # the code gets done in the nexus.cron.Cron object which executes on its
         # own separate thread.
         try:
-            log.info(f"Setting up internal cron schedule")
             schedule.clear('component')
 
             # By default nexus does not do a vacuum and sync upon start.
@@ -840,11 +858,12 @@ class DomainComponent(BaseComponent):
                 self.vacuum()
 
             # Then schedule it
-            schedule.every(10).minutes.do(self.cron_vacuum).tag('component')
-            schedule.every(30).minutes.do(self.cron_sync).tag('component')
-        except Exception as ex:
-            print("-----------------------------------------------")
-            print("EX:", ex)
-            print("-----------------------------------------------")
+            schedule.every(5).minutes.do(self.cron_vacuum_sessions).tag('component')
 
+            # Start the scheduler loop
+            initialize('crossbar')
+            log.info(f"Internal cron schedule started")
+
+        except Exception as ex:
+            log.error(f"Unable to finalize startup sequence (sync, vacuum, scheduler, and izaber.initialize) : <{ex}>")
 

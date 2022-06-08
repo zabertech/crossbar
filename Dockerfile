@@ -21,6 +21,7 @@ RUN    mkdir /logs /data  \
             git \
             build-essential \
             ca-certificates \
+            cron \
             curl \
             python3-distutils \
             libsasl2-dev \
@@ -30,36 +31,35 @@ RUN    mkdir /logs /data  \
             python3.8-venv \
             libssl-dev \
             tmux \
-            vim-nox
-
-# Copy over the data files
-COPY . /app
-
-# Install all the required bits for 
-RUN        apt install -y software-properties-common \
+            vim-nox \
+            software-properties-common \
         && add-apt-repository ppa:pypy/ppa \
         && apt update \
         && DEBIAN_FRONTEND=noninteractive apt install -y pypy3 pypy3-dev libsnappy-dev \
         # Pip is handy to have around
         && curl https://bootstrap.pypa.io/get-pip.py -o /root/get-pip.py \
         && pypy3 /root/get-pip.py \
-        # Start installing crossbar
-        && pypy3 -m pip install --upgrade pip setuptools ujson \
-        && pypy3 -m pip install -U -r /app/requirements-latest.txt \
-        && pypy3 -m pip install -U -r /app/requirements-nexus.txt \
-        && cd /app \
-        && pypy3 setup.py develop --no-deps \
-        # Done and now we can cleanup
-        && pypy3 -m pip cache purge \
         && apt clean \
         && rm -rf ~/.cache \
         && rm -rf /var/lib/apt/lists/*
 
+# Copy over the data files
+COPY . /app
+
 WORKDIR /app
+
+# Install all the required bits for 
+RUN        pypy3 -m pip install --upgrade pip setuptools ujson \
+        && pypy3 -m pip install -r /app/requirements-latest.txt \
+        && pypy3 -m pip install -r /app/requirements-nexus.txt \
+        && pypy3 setup.py develop --no-deps \
+        # Done and now we can cleanup
+        && pypy3 -m pip cache purge
 
 EXPOSE 443 80
 
 ENTRYPOINT []
 
-CMD /app/run-server.sh
+# CMD /app/run-server.sh
+CMD /app/docker/entry.sh
 

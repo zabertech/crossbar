@@ -111,17 +111,17 @@ def wamp_register_handler_factory(component, handler, *args, **kwargs):
         except InvalidLoginPermissionError as ex:
             raise ApplicationError('com.izaber.wamp.error.invalidlogin','Invalid Login')
         except ApplicationError as ex:
-            log.warn(f"Invocation Error: {ex}")
-            log.warn(traceback.format_exc())
+            log.warning(f"Invocation Error: <{ex}>")
+            log.warning(traceback.format_exc())
             raise
 
         # Switch all errors to something that we can handle
         except Exception as ex:
-            log.warn(f"Invocation Failure for {authid} because '{ex}'"\
+            log.warning(f"Invocation Failure for {authid} because <{ex}>"\
                 f"<{type(ex)}>")
-            log.warn(f"ARGS: {repr(args)}")
-            log.warn(f"KWARGS: {repr(kwargs)}")
-            log.warn(f"DETAILS: {repr(details)}")
+            log.warning(f"ARGS: {repr(args)}")
+            log.warning(f"KWARGS: {repr(kwargs)}")
+            log.warning(f"DETAILS: {repr(details)}")
             log.error(f"TRACEBACK: {traceback.format_exc()}")
             raise ApplicationError("com.izaber.wamp.error", str(ex))
     return wrap
@@ -143,6 +143,7 @@ class BaseComponent(ApplicationSession):
                 wamp = handler.wamp
                 if wamp['subscribe']:
                     for uri in wamp['subscribe']:
+                        self.log.info(f"Subscribing to {uri}")
                         yield self.subscribe(
                             wamp_subscription_handler_factory(self, handler),
                             uri,
@@ -151,6 +152,7 @@ class BaseComponent(ApplicationSession):
 
                 if wamp['register']:
                     for uri in wamp['register']:
+                        self.log.info(f"Registering {uri}")
                         yield self.register(
                             wamp_register_handler_factory(self, handler),
                             uri,
