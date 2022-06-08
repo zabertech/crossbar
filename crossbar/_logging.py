@@ -108,7 +108,7 @@ def make_stdout_observer(levels=(LogLevel.info, ),
             logSystem = event["log_system"]
 
         if show_source and event.get("log_namespace") is not None:
-            logSystem += " " + event.get("cb_namespace", event.get("log_namespace", ''))
+            logSystem += " " + ( event.get("cb_namespace") or event.get("log_namespace", '') )
 
         if event.get("log_category"):
             format_string = _categories.get(event['log_category'])

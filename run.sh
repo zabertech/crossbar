@@ -55,7 +55,7 @@ HELP
 
 # Please do not change the default behaviour of logging
 # In fact, the system uses invoke.sh to capture the 
-# stdout and stderr for dumping into the ./logs directory
+# stdout and stderr for dumping into the ./data directory
 # automatically via tee.
 LOG_TO_FILE=${LOG_TO_FILE:=''}
 
@@ -79,7 +79,6 @@ prepare_environment () {
 
 default_invoke_command () {
   INVOKE_COMMAND="/app/run-server.sh"
-  #INVOKE_COMMAND="tmux new -s nexus /app/run-server.sh"
 }
 
 launch_container () {
@@ -88,7 +87,6 @@ launch_container () {
 
   CMD="docker run --name $CONTAINER_NAME \
       -ti \
-      -v `pwd`/logs:/logs \
       -v `pwd`:/app \
       -p $PORT_PLAINTEXT:8282 \
       -p $PORT_SSL:8181 \

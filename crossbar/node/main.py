@@ -40,6 +40,7 @@ from crossbar.common.checkconfig import color_json, InvalidConfigException
 from crossbar.worker import main as worker_main
 
 import nexus
+import nexus.cron
 
 try:
     import vmprof

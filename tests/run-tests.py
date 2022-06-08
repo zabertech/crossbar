@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env pypy3
 
 import os
 import sys
@@ -22,7 +22,7 @@ for test_fpath in test_fpaths:
     print("-------------")
     print(f"Running test {test_fpath} {tests_seen}/{tests_count}")
     print("-------------")
-    cmd_str = f"{sys.executable} {test_fpath}"
+    cmd_str = f"NO_LOG_FILE=1 LOG_LEVEL=debug {sys.executable} {test_fpath}"
     result = subprocess.call(cmd_str, shell=True)
     if result:
         print(f"Error on test {test_fpath}. You can execute yourself with:\n\n{cmd_str}\n")

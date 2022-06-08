@@ -274,7 +274,7 @@ class Controller:
             raise ValueError('Missing extra when session requires elevated' \
                              ' permissions. Cannot look last auth up so aborting.')
         if not self.authenticate(login, password):
-            log.warn(f"NOPASSWORD: Rejected reauthentication attempt {login}")
+            log.warning(f"NOPASSWORD: Rejected reauthentication attempt {login}")
             return False
 
         # We need the session session token to be able to tag the
