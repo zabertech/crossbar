@@ -9,7 +9,7 @@ default:
       skip_vacuum: False
     ldap:
       server:
-        host: file://ldap-mock-data.yaml
+        - host: file://ldap-mock-data.yaml
   crossbar:
     version: 2
     workers:

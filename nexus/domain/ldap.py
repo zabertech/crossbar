@@ -2,7 +2,7 @@ import re
 import pathlib
 import ruamel.yaml
 
-from ldap3 import Server, Connection, ALL, ALL_ATTRIBUTES, SUBTREE
+from ldap3 import Server, ServerPool, Connection, ALL, ALL_ATTRIBUTES, SUBTREE, ROUND_ROBIN
 from ldap3.utils.conv import escape_filter_chars
 
 from izaber import config, app_config
@@ -38,7 +38,10 @@ default:
   nexus:
       ldap:
           server:
-              host: 'dc2.id.izaber.com'
+            - host: 'dc2.id.izaber.com'
+              port: 636
+              use_ssl: True
+            - host: 'dc1.id.izaber.com'
               port: 636
               use_ssl: True
           login_template: '{login}@id.izaber.com'
@@ -105,8 +108,18 @@ class LDAPServer:
     def __init__(self, config):
         self.config = config
 
-        server_config = self.config['server']
-        self.server = Server(**server_config)
+        # active=True means keep tabs on which LDAP servers are up
+        # exhaust=10 means if a server is found offline, wait 10 seconds before retesting
+        # ROUND_ROBIN is just to distribute the requests for fun. Doesn't actually matter
+        # that much in this case since our queries are so light
+        server_pool = ServerPool(None, ROUND_ROBIN, active=True, exhaust=10)
+        for server_config in self.config['server']:
+            log.info(f"Adding LDAP server {server_config}.")
+            server = Server(**server_config)
+            server_pool.add(server)
+        self.server = server_pool
+
+        # So we can cache the user informaiton for faster lookups
         self._users_cached = None
         self._groups_cached = None
 
@@ -118,12 +131,12 @@ class LDAPServer:
             if not self.server:
                 log.warning(f"LDAP No server found.")
                 return False
+            log.info(f"LDAP auth '{login}'")
+            ldap_user = self.config.login_template.format(login=login)
             conn = Connection(
                         self.server,
                         auto_bind=True,
-                        user=str(
-                            self.config.login_template.format(
-                                login=login)),
+                        user=str(ldap_user),
                         password=str(password),
                     )
             return True
@@ -146,7 +159,7 @@ class LDAPServer:
                   )
             return conn
         except Exception as ex:
-            #log.error(f"Unable to create connection to LDAP server {self.server} due to exception <{ex}>")
+            log.error(f"Unable to create connection to any LDAP servers due to exception <{ex}>")
             return False
 
     def user_get(self, login, attributes=None):
@@ -191,6 +204,9 @@ class LDAPServer:
 
         entries = []
         self.users_cached = entries
+
+        log.debug(f"Found {len(conn.entries)} user entries from LDAP")
+
         for e in conn.entries:
             entry = dict(e.entry_attributes_as_dict)
             entry['dn'] = e.entry_dn
@@ -222,6 +238,9 @@ class LDAPServer:
         )
         entries = []
         self._groups_cached = entries
+
+        log.debug(f"Found {len(conn.entries)} group entries from LDAP")
+
         for e in conn.entries:
             entry = dict(e.entry_attributes_as_dict)
             entry['dn'] = e.entry_dn
@@ -306,17 +325,31 @@ class LDAPService:
         self.config = DictObject(noerror=True, **ldap_config)
 
         if not self.config.server:
+            log.debug("No LDAP servers configured. Skipping")
             return
 
-        scfg = DictObject(noerror=True, **self.config.server)
+        # We do some mangling of the data here since nexus.ldap.server
+        # might be either a dict or a list. (We want a list to allow
+        # for multiple servers to be defined for LDAP
+        if isinstance(self.config.server, dict):
+            self.config.server = [self.config.server]
 
+        # In test situations, we only have one test LDAP server and
+        # it will have a "host" that is actually a cache file
+        scfg = DictObject(noerror=True, **(self.config.server[0]))
+
+        # If there's no host... then something weird is going on and
+        # we'll just throw down a warning and move on
         if not scfg.host:
+            log.warn("LDAP appears to be improperly configured. First server entry has no host?")
             return
 
         m = re.search(r'file://(.*)', scfg.host)
         if m:
+            log.debug(f"Using Mock LDAP with data at {scfg.host}")
             self.server = LDAPMock(**scfg)
         else:
+            log.debug(f"LDAP configured")
             self.server = LDAPServer(self.config)
 
 

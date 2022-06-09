@@ -4,9 +4,9 @@ default:
   nexus: 
     ldap:
 #        server:
-#            host: ''
-#            port: 636
-#            use_ssl: True
+#            - host: ''
+#              port: 636
+#              use_ssl: True
 #        login_template: '{login}@id.izaber.com'
 #        login_attribute: 'sAMAccountName'
 #        db_login: ''
