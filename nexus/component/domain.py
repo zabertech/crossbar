@@ -118,7 +118,6 @@ class DomainComponent(BaseComponent):
         if not password:
             log.warning(f"NOPASSWORD: Rejected {authid}")
             raise InvalidLoginPermissionError('Invalid Login')
-            raise ApplicationError('com.izaber.wamp.error.invalidlogin','Invalid Login')
 
         # This authentication may have been assigned a Cookie
         # if so, we want to keep track of it
@@ -127,7 +126,17 @@ class DomainComponent(BaseComponent):
         except KeyError as ex:
             cbtid = None
 
-        res = controller.login(authid, password, cbtid)
+        # Hand over authentication to the main nexus controller.
+        # Just in case we receive some strange exceptions, we'll just:
+        # 1. wrap the call then report the exception in the logs
+        # 2. tell the user that had problems enough information to suggest
+        #      that it wasn't them and give them a way to look into it more
+        try:
+            res = controller.login(authid, password, cbtid)
+        except Exception as ex:
+            log.error(f"INTERNALERROR: Rejected '{authid}' due to <{ex}>")
+            raise ApplicationError("Internal Error. Please contact sysadmin to review logs")
+
         if not res:
             log.warning(f"PASSWORDERROR: Rejected {authid}")
             raise InvalidLoginPermissionError('Invalid Login')
