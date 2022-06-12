@@ -165,8 +165,4 @@ default:
         realm: izaber
         role: trusted
         type: class
-      - classname: nexus.component.utils.UtilitiesComponent
-        realm: izaber
-        role: trusted
-        type: class
 
