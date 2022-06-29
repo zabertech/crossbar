@@ -107,21 +107,25 @@ class LDAPServer:
 
     def __init__(self, config):
         self.config = config
+        self.server = self.config['server']
 
-        # active=True means keep tabs on which LDAP servers are up
-        # exhaust=10 means if a server is found offline, wait 10 seconds before retesting
-        # ROUND_ROBIN is just to distribute the requests for fun. Doesn't actually matter
-        # that much in this case since our queries are so light
-        server_pool = ServerPool(None, ROUND_ROBIN, active=True, exhaust=10)
         for server_config in self.config['server']:
-            log.info(f"Adding LDAP server {server_config}.")
-            server = Server(**server_config)
-            server_pool.add(server)
-        self.server = server_pool
+            log.info(f"Using server config {server_config}.")
 
         # So we can cache the user informaiton for faster lookups
         self._users_cached = None
         self._groups_cached = None
+
+    def server_pool(self):
+          # active=True means keep tabs on which LDAP servers are up
+          # exhaust=10 means if a server is found offline, wait 10 seconds before retesting
+          # ROUND_ROBIN is just to distribute the requests for fun. Doesn't actually matter
+          # that much in this case since our queries are so light
+          server_pool = ServerPool(None, ROUND_ROBIN, active=True, exhaust=10)
+          for server_config in self.config['server']:
+              server = Server(**server_config)
+              server_pool.add(server)
+          return server_pool
 
     def authenticate(self, login, password):
         """ Returns a true value if the login/password provided are able to
@@ -132,13 +136,15 @@ class LDAPServer:
                 log.warning(f"LDAP No server found.")
                 return False
             log.info(f"LDAP auth '{login}'")
+
             ldap_user = self.config.login_template.format(login=login)
             conn = Connection(
-                        self.server,
+                        self.server_pool(),
                         auto_bind=True,
                         user=str(ldap_user),
                         password=str(password),
                     )
+            conn.unbind()
             return True
         except Exception as ex:
             log.warning(f"LDAP auth fail: '{login}' due to <{ex}>")
@@ -151,7 +157,7 @@ class LDAPServer:
             return False
         try:
             conn = Connection(
-                    self.server,
+                    self.server_pool(),
                     auto_bind=True,
                     user=self.config.login_template.format(
                             login=self.config.db_login),
@@ -167,13 +173,13 @@ class LDAPServer:
             identified by the login (which then gets converted into
             the upn)
         """
-        conn = self.connect()
-
         upn_search_filter = f"({self.config.login_attribute}="\
                                 f"{escape_filter_chars(login)})"
 
         if not attributes:
             attributes = self.default_user_attributes
+
+        conn = self.connect()
         conn.search(
             self.config.user_base,
             upn_search_filter,
@@ -186,6 +192,7 @@ class LDAPServer:
             entry['dn'] = e.entry_dn
             return entry
 
+        conn.unbind()
         return
 
 
@@ -194,7 +201,6 @@ class LDAPServer:
             this query caches
         """
         conn = self.connect()
-
         conn.search(
             self.config.user_base,
             self.config.user_filter,
@@ -211,6 +217,8 @@ class LDAPServer:
             entry = dict(e.entry_attributes_as_dict)
             entry['dn'] = e.entry_dn
             entries.append(entry)
+
+        conn.unbind()
         return entries
 
     def groups_raw(self, attributes=None, force=False):
@@ -236,6 +244,7 @@ class LDAPServer:
               'member',
             ]
         )
+
         entries = []
         self._groups_cached = entries
 
@@ -246,6 +255,7 @@ class LDAPServer:
             entry['dn'] = e.entry_dn
             entries.append(entry)
 
+        conn.unbind()
         return entries
 
 class LDAPMock:

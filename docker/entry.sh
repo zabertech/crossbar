@@ -8,5 +8,5 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 . $SCRIPT_DIR/run-cron.sh
 
 # Invoke Crossbar
-. $SCRIPT_DIR/../run-server.sh
+. $SCRIPT_DIR/../run-server.sh $@
 

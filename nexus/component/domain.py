@@ -206,7 +206,7 @@ class DomainComponent(BaseComponent):
 
         except Exception as ex:
             tb = traceback.format_exc()
-            log.error(f"Authorizer error for '{action}://{uri}': {ex} {tb}")
+            log.error(f"Authorizer error for {authid}<{auth_role}> '{action}://{uri}': {ex} {tb}")
             return False
 
     def get_extra_from_details(self, details):
@@ -338,6 +338,15 @@ class DomainComponent(BaseComponent):
         except Exception as ex:
             log.error(f"Vacuum Sessions Exception! {ex}")
         return True
+
+    @wamp_register('.system.vacuum.sessions')
+    @wamp_register('system.vacuum.sessions')
+    def system_vacuum_sessions(self, details):
+        """ Runs the process that clears out the sessions
+        """
+        self.vacuum_sessions()
+        return True
+
 
     def vacuum(self):
         """ Runs the process that cleans up the database
@@ -509,6 +518,9 @@ class DomainComponent(BaseComponent):
 
                 REGISTRATIONS[registration_id] = reg_rec.key
 
+                # Let's submit a log message about a registration coming online
+                log.info(f"REG {reg_rec.match}://{reg_rec.uri} from {reg_rec.authid}@{reg_rec.peer}")
+
             self.call('wamp.registration.get', registration_id)\
                 .addCallback(on_register_data)
 
@@ -539,6 +551,9 @@ class DomainComponent(BaseComponent):
             # Figure out our internal record for the registered URI
             key_hash = REGISTRATIONS.get(registration_id)
             reg_rec = db.uris[key_hash]
+
+            # Let's submit a log message about the loss of the registration
+            log.warn(f"REGLOST {reg_rec.match}://{reg_rec.uri} from {reg_rec.authid}@{reg_rec.peer}")
 
             # Mark this registration as dead
             reg_rec.active = False
@@ -717,6 +732,18 @@ class DomainComponent(BaseComponent):
                 )
         return record.dict_(yaml)
 
+    @wamp_register('.system.db.stats')
+    @wamp_register('system.db.stats')
+    def db_stats(self, details=None, **kwargs):
+        stats = db.stats(**kwargs)
+        return stats
+
+    @wamp_register('.system.db.bulk_unload')
+    @wamp_register('system.db.bulk_unload')
+    def db_bulk_unload(self, nexus_type, details=None):
+        db.bulk_unload(nexus_type)
+        return True
+
     ##################################################
     # Personal calls for transitional purposes
     ##################################################
@@ -867,7 +894,7 @@ class DomainComponent(BaseComponent):
                 self.vacuum()
 
             # Then schedule it
-            schedule.every(5).minutes.do(self.cron_vacuum_sessions).tag('component')
+            schedule.every(2).minutes.do(self.cron_vacuum_sessions).tag('component')
 
             # Start the scheduler loop
             initialize('crossbar')

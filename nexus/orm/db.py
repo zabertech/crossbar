@@ -5,6 +5,7 @@ from nexus.orm.filter import *
 from nexus.log import log
 
 import os
+import gc
 
 ##################################################
 # Nexus DB
@@ -771,4 +772,15 @@ class NexusDB:
             record = self.get(uid_b64)
             if not record: continue
             record.delete_()
+
+    def stats(self, **kwargs):
+        return RECORD_CACHE.stats(**kwargs)
+
+    def bulk_unload(self, nexus_type):
+        """ Bulk unloads a single nexus type. EXPERIMENTAL
+        """
+        for path, nexus_record in list(RECORD_CACHE.items()):
+            if nexus_record.record_type_ == nexus_type:
+                del RECORD_CACHE[path]
+        gc.collect()
 

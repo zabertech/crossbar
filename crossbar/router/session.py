@@ -1148,6 +1148,7 @@ class RouterSession(RouterSessionBase):
         if not cookie_obj:
             self.log.error(f"onLeave cookie '{self._cbtid}' not found in DB. Failing gracefully. This should not happen, was the record deleted manually?")
             return
+        cookie_obj.unload_()
 
     def close(self):
         res = super().self()
