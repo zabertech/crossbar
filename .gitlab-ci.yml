@@ -5,9 +5,7 @@ image: docker:19.03.1
 
 python-package-build:
   tags:
-    - docker
-    - dind
-    - build
+    - docker-executor
   stage: build
   image: pypy:3
   script:

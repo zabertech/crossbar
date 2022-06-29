@@ -28,7 +28,4 @@
 # Syncronize the LDAP stuff every hour on the half hour
 30  *  *  *    *     /usr/local/bin/nexus users sync >> /data/cron.log 2>&1
 
-# Remove bak files
-0   0  *  *    *     find /app/data/db/ -name '*.bak' -delete
-
 

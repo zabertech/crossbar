@@ -61,5 +61,5 @@ EXPOSE 443 80
 ENTRYPOINT []
 
 # CMD /app/run-server.sh
-CMD /app/docker/entry.sh
+CMD /app/docker/entry.sh --logtofile --logdir /logs
 

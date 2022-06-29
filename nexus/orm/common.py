@@ -252,6 +252,32 @@ class RecordCache(dict):
         del self[path]
         return nexus_record
 
+    def stats(self, include_paths=False):
+        """ Returns a count of all the record types currently loaded.
+            This isn't the same as the number of records as there can be
+            many more records than are presently in-memory in the system
+        """
+        counts = {}
+        stats = {
+            'counts': counts,
+        }
+
+        for path, nexus_record in self.items():
+            record_type = nexus_record.record_type_
+            counts.setdefault(record_type,0)
+            counts[record_type] += 1
+
+        if include_paths:
+            paths = {}
+            stats['paths'] = paths
+            for path, nexus_record in self.items():
+                record_type = nexus_record.record_type_
+                paths.setdefault(record_type,[])
+                paths[record_type].append(str(path))
+
+
+        return stats
+
 RECORD_CACHE = RecordCache()
 
 
