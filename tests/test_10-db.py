@@ -81,6 +81,9 @@ def test_db():
     with pytest.raises(KeyError):
         result = db.cookies[cookie_obj.uuid]
 
+    # Try and get a nonexisting UUID
+    assert not db.get(cookie_obj.uuid)
+
     ##################################################
     # Enable/Disable Tests
     ##################################################
