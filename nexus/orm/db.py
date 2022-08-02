@@ -123,7 +123,7 @@ class NexusDB:
             # confuse the shell lexer. So with a file like
             # /data/db/cookies/-_reFwFmcA5Z4UaaQZZ-OfhxHHRVJ7ge.yaml will
             # make the code think that '_re...' is a switch for a command
-            if uid_b64 == '-':
+            if uid_b64[0] == '-':
                 continue
 
             # Now verify if the hash already exists in the system. If it
