@@ -25,10 +25,13 @@ LOG_LEVEL=${LOG_LEVEL:=debug}
 LOG_COLOURS=${LOG_COLOURS:=true}
 LOG_FORMAT=${LOG_FORMAT:=standard}
 
-# This allows the monkey patched crossbar to find our modules
-export PYTHONPATH="$SCRIPT_DIR/lib"
+# This allows the monkey patched crossbar to find our modules. This means
+# can create custom components and place them into the /data/components
+# and add them to izaber.yaml
+export PYTHONPATH="${PYTHONPATH:=${CBDIR}/components}"
 
 echo "Starting crossbar from ${CBDIR}"
+echo "Component Path: ${PYTHONPATH}"
 crossbar start \
         --cbdir ${CBDIR} \
         --logformat ${LOG_FORMAT}\

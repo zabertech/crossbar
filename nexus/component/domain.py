@@ -173,12 +173,12 @@ class DomainComponent(BaseComponent):
     def authorizer(self, session, uri, action, options, **kwargs):
         """ Validates an action for a session to specific URIs 
         """
-        auth_id = session['authid']
+        authid = session['authid']
         auth_role = session['authrole']
         extra = session['authextra']
 
         try:
-            permission = controller.authorize( auth_id, auth_role,
+            permission = controller.authorize( authid, auth_role,
                                                 uri, action, extra, options )
 
             # Not allowed. Might be false

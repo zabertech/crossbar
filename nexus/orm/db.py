@@ -79,8 +79,10 @@ class NexusDB:
             resolved_fpath = self.hashed_path(uid_b64).resolve()
             local_fpath = resolved_fpath.relative_to(self.base_path_.resolve())
             record_obj = self.record_from_path(local_fpath)
+            if not record_obj:
+                return
             if record_type and record_type != record_obj.record_type_:
-                raise KeyError(f"Wrong record type for {uid_b64}")
+                raise KeyError(f"Wrong record type for {uid_b64}. Expected '{record_type}' got '{record_obj.record_type_}' instead")
             return record_obj
         except FileNotFoundError:
             return
@@ -121,7 +123,7 @@ class NexusDB:
             # confuse the shell lexer. So with a file like
             # /data/db/cookies/-_reFwFmcA5Z4UaaQZZ-OfhxHHRVJ7ge.yaml will
             # make the code think that '_re...' is a switch for a command
-            if uid_b64 == '-':
+            if uid_b64[0] == '-':
                 continue
 
             # Now verify if the hash already exists in the system. If it
