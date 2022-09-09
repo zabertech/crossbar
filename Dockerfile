@@ -49,7 +49,8 @@ COPY . /app
 WORKDIR /app
 
 # Install all the required bits for 
-RUN        pypy3 -m pip install --upgrade pip setuptools ujson \
+RUN     : \
+        && pypy3 -m pip install --upgrade pip setuptools ujson \
         && pypy3 -m pip install -r /app/requirements-latest.txt \
         && pypy3 -m pip install -r /app/requirements-nexus.txt \
         && pypy3 setup.py develop --no-deps \

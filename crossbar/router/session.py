@@ -33,6 +33,24 @@ from crossbar._util import hl, hlid, hltype
 from twisted.internet.defer import inlineCallbacks
 from twisted.python.failure import Failure
 
+# Monkey patch autobahn.wamp.message.Hello since it doesn't currently include a
+# way for a component (or anything else) to acquire the 'agent' despite it being
+# documented in the WAMP spec. We want this agent tag so we can track what tool
+# is being used to contact the server.
+import autobahn.wamp.message
+original = autobahn.wamp.message.Hello.parse
+def hello_parse(msg):
+    obj = original(msg)
+
+    details = msg[2]
+
+    if obj.authextra is None:
+        obj.authextra = {}
+    obj.authextra['authagent'] = details.get('agent','-')
+
+    return obj
+autobahn.wamp.message.Hello.parse = hello_parse
+
 try:
     from crossbar.router.auth import PendingAuthCryptosign, PendingAuthCryptosignProxy
 except ImportError:
@@ -427,6 +445,7 @@ class RouterSessionBase(BaseSession):
         self._authmethod = None
         self._authprovider = None
         self._authextra = None
+        self._authagent = None
 
         # the service session to be used eg for WAMP metaevents
         self._service_session = None
@@ -467,6 +486,7 @@ class RouterSessionBase(BaseSession):
                 self._authextra['x_cb_worker'] = custom.get('x_cb_worker', None)
                 self._authextra['x_cb_peer'] = custom.get('x_cb_peer', None)
                 self._authextra['x_cb_pid'] = custom.get('x_cb_pid', None)
+                self._authextra['authagent'] = self._authagent
 
                 roles = self._router.attach(self)
 
@@ -489,6 +509,8 @@ class RouterSessionBase(BaseSession):
             if isinstance(msg, message.Hello):
 
                 self._session_roles = msg.roles
+
+                self._authagent = msg.authextra.get('authagent','-')
 
                 details = types.HelloDetails(realm=msg.realm,
                                              authmethods=msg.authmethods,
