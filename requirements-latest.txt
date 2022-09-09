@@ -2,7 +2,7 @@ attrs>=17.2.0
 autobahn==22.4.2
 autobahn[twisted,encryption,compress,serialization,scram,xbr]
 base58>=2.1.0
-bcrypt>=3.1.6
+bcrypt==3.2.2
 bitstring>=3.1.5
 cbor2>=5.2.0
 git+https://github.com/crossbario/cfxdb.git@3acbf87caaaa89eabe631c44ca7377b66bd5ce28#egg=cfxdb

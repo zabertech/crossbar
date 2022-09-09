@@ -1,7 +1,8 @@
 attrs>=17.2.0
 autobahn[twisted,encryption,compress,serialization,scram,xbr]>=22.3.2
 base58>=2.1.0
-bcrypt>=3.1.6
+# Using crypt 3.2.2 since it was converted to rust and it breaks annoyingly
+bcrypt==3.2.2
 bitstring>=3.1.5
 cbor2>=5.2.0
 cfxdb>=22.3.1

@@ -36,30 +36,42 @@ from twisted.internet import threads
 from twisted.internet.defer import inlineCallbacks, DeferredList
 from autobahn.wamp.exception import ApplicationError
 
-def extract_peer(transport):
-    # Get the peer address of the session. We'll get them via the following order
-    # 1. x-real-ip
-    # 2. x-forwarded-for (uses the first entry)
-    # 3. peer (might be the IP of the proxy)
-    if not transport:
-        return 'unknown'
+def extract_peer_data(details):
+    # Gets two things:
+    #   (1) peer address of the session. We'll get them via the following order
+    #        1. x-real-ip
+    #        2. x-forwarded-for (uses the first entry)
+    #        3. peer (might be the IP of the proxy)
+    #   (2) the WAMP agent for this session
+    #
 
-    http_headers = transport.get('http_headers_received',{})
+    transport = details.get('transport',{})
+
+    # (1) Get the peer_address
     peer = None
-    if http_headers:
-        peer = http_headers.get( 'x-real-ip',
-                  http_headers.get( 'x-forwarded-for' ) )
-        if peer and ',' in peer:
-            peer = peer.split(',')[0].strip()
+    if transport:
+        http_headers = transport.get('http_headers_received',{})
+        if http_headers:
+            peer = http_headers.get( 'x-real-ip',
+                      http_headers.get( 'x-forwarded-for' ) )
+            if peer and ',' in peer:
+                peer = peer.split(',')[0].strip()
 
-    if not peer and transport.get('peer'):
-        peer = transport['peer']
-        # peer can also be `unix` which doesn't have an associated
-        # IP breakdown
-        if ':' in peer:
-            peer = peer.split(':')[1]
+        if not peer and transport.get('peer'):
+            peer = transport['peer']
+            # peer can also be `unix` which doesn't have an associated
+            # IP breakdown
+            if ':' in peer:
+                peer = peer.split(':')[1]
 
-    return peer or 'unknown'
+    # (2) get the agent and append the user-agent if available
+    agent = details.get('authextra',{}).get('authagent','-')
+    user_agent = transport.get('http_headers_received',{})\
+                          .get('user-agent','')
+    if user_agent:
+        agent += f"[{user_agent}]"
+
+    return peer or 'unknown', agent or 'unknown'
 
 SESSIONS = {}
 REGISTRATIONS = {}
@@ -111,12 +123,14 @@ class DomainComponent(BaseComponent):
             details: other stuff including the password
         """
 
-        log.info(f"Authenticating '{authid}'")
+        peer, agent = extract_peer_data(options)
+
+        log.info(f"Authenticating '{authid}' from {peer}<{agent}>")
 
         # If there's no ticket (password) provided we simply drop out
         password = options.get('ticket')
         if not password:
-            log.warning(f"NOPASSWORD: Rejected {authid}")
+            log.warning(f"NOPASSWORD: Rejected {authid} from {peer}<{agent}>")
             raise InvalidLoginPermissionError('Invalid Login')
 
         # This authentication may have been assigned a Cookie
@@ -134,17 +148,17 @@ class DomainComponent(BaseComponent):
         try:
             res = controller.login(authid, password, cbtid)
         except Exception as ex:
-            log.error(f"INTERNALERROR: Rejected '{authid}' due to <{ex}>")
+            log.error(f"INTERNALERROR: Rejected '{authid}' from {peer}<{agent}> due to <{ex}>")
             raise ApplicationError("Internal Error. Please contact sysadmin to review logs")
 
         if not res:
-            log.warning(f"PASSWORDERROR: Rejected {authid}")
+            log.warning(f"PASSWORDERROR: Rejected '{authid}' from {peer}<{agent}>")
             raise InvalidLoginPermissionError('Invalid Login')
 
         cookie_obj = res['cookie_obj']
         transport = options.get('transport',{})
         cookie_obj.data['cbtid'] = transport.get('cbtid')
-        cookie_obj.data['peer'] = extract_peer(transport)
+        cookie_obj.data['peer'],  cookie_obj.data['agent'] = extract_peer_data(options)
         cookie_obj.data['cookie'] = options.get('cookie')
         cookie_obj.save_()
 
@@ -155,6 +169,9 @@ class DomainComponent(BaseComponent):
                 'options': options,
                 'auth_res': res,
             }
+
+        if res:
+            log.info(f"Login success for '{authid}' from {peer}<{agent}>")
         return res
 
     @wamp_register('.auth.authenticate')
@@ -162,7 +179,8 @@ class DomainComponent(BaseComponent):
         try:
             return bool(controller.authenticate(login, password))
         except Exception as ex:
-            log.error(f"Couldn't authenticate {login} due to {ex}")
+            peer, agent = extract_peer_data(options)
+            log.error(f"Couldn't authenticate '{login}' from {peer}<{agent}> due to {ex}")
             return False
 
     #############################################################################
@@ -497,7 +515,7 @@ class DomainComponent(BaseComponent):
                 if session_id and session_id in SESSIONS:
                     sess_rec = SESSIONS[session_id]
                     details = sess_rec.get('details',{})
-                    peer = extract_peer(details.get('transport'))
+                    peer, agent = extract_peer_data(details)
                     authid = details.get('authid','')
 
                 # Update the reference in the databse
