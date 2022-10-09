@@ -1266,6 +1266,8 @@ def main(prog, args, reactor, personality):
         environment=options.environment or None
     )
 
+    # Mark all URIs as unregistered
+
     # Log directory
     #
     if hasattr(options, 'logdir'):

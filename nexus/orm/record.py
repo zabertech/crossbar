@@ -6,6 +6,8 @@ from nexus.log import log
 ##################################################
 RECORD_TYPES = {}
 
+class Field:
+    pass
 
 class NexusRecordMeta(type):
     """ This class is used to collect all the NexusRecord types that are
@@ -114,6 +116,10 @@ class NexusRecord(metaclass=NexusRecordMeta):
     # move when a record is removed or a key is deleted
     ownership_path_format_ = '{parent_path}/{key}.yaml'
 
+    # The schema that can be found within this table. This should be of
+    # type NexusSchema
+    _schema = None
+
     # The template to what the yaml data should
     # look like if we're creating it from scratch
     _yaml_template = YAML_TEMPLATE_DEFAULT
@@ -162,6 +168,10 @@ class NexusRecord(metaclass=NexusRecordMeta):
         """ Ensures that the instance is a singleton keyed by
             the yaml_fpath
         """
+
+        # Ensure we have a schema present
+        if not cls._schema:
+            raise ValueError(f"{cls._key_name} does not have a schema defined")
 
         # We make a copy since we do modify the record
         data_rec = data_rec.copy()
@@ -239,6 +249,16 @@ class NexusRecord(metaclass=NexusRecordMeta):
         """
         self.reload_()
 
+    def migrate_(self):
+        """ This is used to migrate the existing schema on the database to a newer version.
+            It:
+            1. Compares the difference between the version on disk and templated
+            2. Runs custom model handlers to migrate from one version to the next
+            3. If no migration handlers are defined, then just copies data from the
+                new template into the new file and updates the version number. We assume
+                that the documentation in the existing file might be more important
+        """
+
     def load_(self):
         """ Loads the yaml path. There are two side effects to the
             object.
@@ -255,13 +275,21 @@ class NexusRecord(metaclass=NexusRecordMeta):
             # where it would leave the filehandle open. We do this to force
             # the handle to close.
             with self.yaml_fpath_.open('r') as yaml_fh:
-                self.data_rec_ = yaml_load(yaml_fh)
+                data_rec = yaml_load(yaml_fh)
+
+                # Let's just quickly check here if the schema is up to date.
+                # if it is not, let's also just update it to the most recent
+                self.data_rec_ = self._schema.migrate(data_rec)
+
             for k,v in defaults.items():
                 self.data_rec_.setdefault(k,v)
             self.yaml_fpath_mtime = self.yaml_fpath_.stat().st_mtime
         except FileNotFoundError as ex:
-            self.data_rec_ = yaml_load(self._yaml_template)
+            self.data_rec_ = self._schema.yaml()
             self.data_rec_.update(defaults)
+        except Exception as ex:
+            raise Exception(f"Error loading `{self.yaml_fpath_}` due to {ex}")
+
         return True
 
     def unload_(self):
@@ -469,7 +497,6 @@ class NexusRecord(metaclass=NexusRecordMeta):
             raise LookupError(f"{repr(collection_attrib)} not a valid collection. Available Collections {collections_str}")
         return self._cache_collections[collection_attrib]
 
-
     def set_(self, k, v):
         """ Sets an item from the data_rec
         """
@@ -561,10 +588,12 @@ class NexusRecord(metaclass=NexusRecordMeta):
         elif k in self._constraints:
             if not self._constraints[k](v, k, self):
                 raise ValueError(f"Value {repr(v)} invalid for '{k}'")
-            self.data_rec_[k] = v
+
+            # Make sure we convert the record to a type we like
+            self.data_rec_[k] = self._schema[k].convert(v)
 
         else:
-            self.data_rec_[k] = v
+            self.data_rec_[k] = self._schema[k].convert(v)
 
     def __repr__(self):
         return "{}({})".format(

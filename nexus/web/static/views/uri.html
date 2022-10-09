@@ -51,24 +51,23 @@
   </div>
 </div>
 
-
-<h2 class="mt-4"><i class="bi bi-clock-history"></i> Status</h2>
+<h2 class="mt-4"><i class="bi bi-heart-pulse"></i> Status</h2>
 
 <div class="card">
   <div class="card-body">
     <h5 class="card-title">
     {% if active %}
       <i class="bi bi-wifi"></i> Connected
-      <h6 class="card-subtitle mb-2 text-muted">Connected since {{create}} from {{peer}}</h6>
+      <h6 class="card-subtitle mb-2 text-muted">Connected since {{createTimeStr}} from {{peer}}</h6>
     {% else %}
       <i class="bi bi-wifi-off"></i> Disconnected
-      <h6 class="card-subtitle mb-2 text-muted">Last Connection {{create}} from {{peer}}</h6>
+      <h6 class="card-subtitle mb-2 text-muted">Disconnected {{disconnectTimeStr}}. Last Connection {{createTimeStr}} from {{peer}}</h6>
     {% endif %}
     </h5>
   </div>
 </div>
 
-<h2 class="mt-4"><i class="bi bi-question-circle"></i> Description</h2>
+<h2 class="mt-4"><i class="bi bi-info-square"></i> Description</h2>
 
 <div class="row g-3 py-2 px-3">
   <div class="col-md-12">
@@ -78,6 +77,95 @@
   </div>
 </div>
 
+<h2 class="mt-4"><i class="bi bi-megaphone"></i> Alert Preferences</h2>
+
+<div class="row g-3">
+  <div class="col-md-12">
+    <p>Trigger an alert notification to be published to the topic <span class="code">system.event.warning.registration</span> when this registration has been disconnected for a period of time.</p>
+    <ul>
+    <li><span class="code">disconnect_warn_after</span> determines the number of seconds of grace period before the first warning goes out. Blank will mean no warning will be sent.</li>
+    <li><span class="code">disconnect_warn_reminder_after</code> determines the number of seconds to wait before reminder messages get published. Blank means no reminders will be sent.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-md-4">
+    <label class="col-sm-4 col-form-label">disconnect_warn_after</label>
+    <input type="text"
+            class="form-control"
+            data-link=""
+            name="disconnect_warn_after"
+            aria-label="When if URI is unavailable beyond X seconds"
+            placeholder="Disconnect Warn After (seconds)">
+  </div>
+  <div class="col-md-4">
+    <label class="col-sm-4 col-form-label">disconnect_warn_reminder_after</label>
+    <input type="text"
+            class="form-control"
+            data-link=""
+            name="disconnect_warn_reminder_after"
+            aria-label=""
+            placeholder="">
+  </div>
+  <div class="col-md-4">
+    {{disconnectWarnLast}}
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-md-12">
+    <p>Trigger an alert notification to be published to the topic <span class="code">system.event.warning.registration</span> when this registration has been disconnected for a period of time.</p>
+    <p>Trigger an alert notification to be published to the topic <span class="code">system.event.warning.registration</span> when this registration reconnected/disconnected a certain number of times in a minute.</p>
+    <ul>
+    <li><span class="code">disconnect_count_warn_after</span> determines the number connect/disconnects allowed in a minute before the first warning goes out. Blank will mean no warning will be sent.</li>
+    <li><span class="code">disconnect_count_warn_reminder_after</code> determines the number of seconds to wait before reminder messages get published. Blank means no reminders will be sent.</li>
+    </ul>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-md-4">
+    <label class="col-sm-4 col-form-label">disconnect_count_warn_after</label>
+    <input type="text"
+            class="form-control"
+            data-link=""
+            name="disconnect_count_warn_after"
+            aria-label="When if URI is unavailable beyond X seconds"
+            placeholder="Disconnect Warn After (seconds)">
+  </div>
+  <div class="col-md-4">
+    <label class="col-sm-4 col-form-label">disconnect_count_warn_reminder_after</label>
+    <input type="text"
+            class="form-control"
+            data-link=""
+            name="disconnect_count_warn_reminder_after"
+            aria-label=""
+            placeholder="">
+  </div>
+  <div class="col-md-4">
+    {{disconnectCountWarnLast}}
+  </div>
+</div>
+
+
+<h2 class="mt-4"><i class="bi bi-clock-history"></i> Connection History</h2>
+
+<div class="card">
+  <div class="card-body">
+    <ul>
+    {% for entry in connectionHistory %}
+      <li>
+          From: <span class="code">{{ entry.connected }}</span>
+          To: <span class="code">{{ entry.disconnected }}</span>
+          {% if antry.authid %}
+            By <span class="code">{{ entry.authid }}@{{ entry.peer }}</span>
+          {% endif %}
+      </li>
+    {% endfor %}
+    </ul>
+  </div>
+</div>
 
 </form>
 

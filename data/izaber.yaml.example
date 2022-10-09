@@ -21,6 +21,11 @@ default:
     db:
         path: /app/data/db
 
+        # if True, we ignore the usual process of "cleanup" where stuff like registrations
+        # are all marked invalid. This is useful if we're doing multiple servers and doing
+        # low downtime transitions
+        disable_startup_reset: False
+
   crossbar: 
     version: 2
     workers:

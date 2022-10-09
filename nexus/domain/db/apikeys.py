@@ -36,48 +36,51 @@ def timestamp_passed(timestamp):
 # NexusAPIKey
 ##################################################
 
-YAML_TEMPLATE_APIKEY = """
-# Database version. This key should always be present
+YAML_TEMPLATE_APIKEY = NexusSchema.from_yaml("""
 version: 1
 
-# Database Universal Unique Record ID
-uuid: null
+plaintext_key:
+  help: |-
+    Plain text version of the api key. This field may be blank
+    as the user may have opted not to retain the clear text version due
+    to the higher security risk. Note that changing this plaintext key
+    does not change the hash value.
+  default:
 
-# Plain text version of the api key. This field may be blank
-# as the user may have opted not to retain the clear text version due
-# to the higher security risk. Note that changing this plaintext key
-# does not change the hash value.
-plaintext_key: null
+description:
+  help: |-
+    Description of the purpose of this key
+  default: ''
 
-# Description of the purpose of this key
-description: ""
+expires:
+  help: |-
+    When this key expires. Use the ISO date format
+  default:
 
-# When this key expires. Use the ISO date format
-expires: null
+permissions:
+  help: |-
+    Permissions should be structured as a string string
 
-# Permissions should be structured as a string string
-#
-# - : spacer
-# X : where X is a permission type of c, r, s, p
-#                 c: Allow Calling
-#                 r: Allow Registering
-#                 s: Allow Subscribing
-#                 p: Allow Publishing
-#     if the value is on its own, it represents PERM_ALLOW
-#     if structured like the following:
-# X+ : this implies that accessing X is allowed but requires
-#      elevated permissions to do so
-#
-# Example of a perms are
-#    - c+
-#    - c-s-
-#    - cs
-#
-# If there is no limit to the range, simply use permissions: []
-permissions: []
+    - : spacer
+    X : where X is a permission type of c, r, s, p
+    c: Allow Calling
+    r: Allow Registering
+    s: Allow Subscribing
+    p: Allow Publishing
+    if the value is on its own, it represents PERM_ALLOW
+    if structured like the following:
+    X+ : this implies that accessing X is allowed but requires
+    elevated permissions to do so
 
-""".strip()
+    Example of a perms are
+    - c+
+    - c-s-
+    - cs
 
+    If there is no limit to the range, simply use permissions: []
+  default: []
+
+""")
 
 def generate_secure_hash(login, key):
     """ Creates a hash based upon login as salt and key as
@@ -91,7 +94,7 @@ def generate_secure_hash(login, key):
 class NexusAPIKey(NexusRecord):
     """ Handles a single Nexus API key
     """
-    _yaml_template = YAML_TEMPLATE_APIKEY
+    _schema = YAML_TEMPLATE_APIKEY
     _exclude_keys_dict = ['version', 'key']
     _trie = None
 

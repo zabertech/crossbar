@@ -27,6 +27,10 @@ window.autobahn = require('autobahn-browser');
 import MCDatepicker from 'mc-datepicker';
 window.MCDatepicker = MCDatepicker;
 
+// Date formatting
+// https://github.com/samsonjs/strftime
+window.strftime = require('strftime');
+
 // riot-route: Simple JS router
 // https://github.com/riot/route/tree/master/doc
 //window.route = require('riot-route');

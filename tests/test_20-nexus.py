@@ -6,7 +6,6 @@ import swampyer
 from distutils.dir_util import copy_tree
 
 YAML_PREF_TEST = """
-# this is a test
 something:
   goes:
     here: right

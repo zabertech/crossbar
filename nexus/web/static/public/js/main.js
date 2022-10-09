@@ -1305,6 +1305,47 @@ class NexusURI extends DataComponent {
   }
 
 
+  getTags () {
+
+    function dateToStr( epochTime, defaultValue ) {
+        if ( epochTime > 0 ) {
+             return strftime('%Y-%m-%d %H:%M:%S', new Date(epochTime * 1000 ))
+        }
+        else {
+            return defaultValue || '';
+        }
+    }
+
+    // Provide the disconnect time in human format
+    console.log("DATE disconnect:", this.data.disconnect);
+    const disconnectWarnLast = dateToStr(this.data.disconnect_warn_last);
+    const disconnectCountWarnLast = dateToStr(this.data.disconnect_count_warn_last);
+    const disconnectTimeStr = dateToStr(this.data.disconnect);
+
+    // History of connection entries
+    let connectionHistory = [];
+    console.log(this.data.history);
+    for ( let h of this.data.history ) {
+        const newEntry = {
+            connected: dateToStr(h[0], '[unmarked]'),
+            disconnected: dateToStr(h[1], '[unmarked]'),
+            authid: h[2],
+            peer: h[3],
+            session_id: h[4],
+        };
+        connectionHistory.push(newEntry);
+    }
+
+    return {
+      connectionHistory,
+      disconnectTimeStr,
+      disconnectWarnLast,
+      disconnectCountWarnLast,
+      createTimeStr: dateToStr('%Y-%m-%d %H:%M:%S', this.data.create),
+      ...super.getTags()
+    }
+  }
+
   render() {
     let targetElement = super.render();
     const editor = this.editor = ace.edit(`description-${this.uuid}`);

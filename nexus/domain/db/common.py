@@ -1,6 +1,8 @@
 __all__ = [
   '_AuthorizedNexusCollection',
   'NexusRecord',
+  'NexusSchema',
+  'NexusField',
   'authorize_owned_query',
   'authorize_owned_update',
   'authorize_owned_create',
@@ -16,7 +18,7 @@ from nexus.constants import PERM_DENY, PERM_REQUIRE_ELEVATED, PERM_ALLOW, \
                             PERM_REQUIRE_DOCUMENTATION, \
                             PERMS, TRAIT_TO_CODE, PERM_REGEX, PERM_TO_CODE, PERM_TO_NAME, \
                             TRAITS, TRAIT_TO_NAME
-from nexus.orm import NexusRecord, NexusCollection
+from nexus.orm import NexusRecord, NexusCollection, NexusField, NexusSchema
 
 class Perm:
     perm_code = None

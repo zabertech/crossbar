@@ -358,7 +358,7 @@ def yaml_dumps(data):
     yaml_str = str(io_buf.read())
     # Strip out the end-of-document marker
     if yaml_str.endswith('...\n'):
-           return yaml_str[:-4]
+       return yaml_str[:-4]
     return yaml_str
 
 def yaml_dump_file(data, fpath):

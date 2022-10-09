@@ -10,43 +10,42 @@ log = logging.getLogger('nexus-db')
 # Nexus Role Objext
 ##################################################
 
-YAML_TEMPLATE_ROLE = """
-# Database version. This key should always be present
+YAML_TEMPLATE_ROLE = NexusSchema.from_yaml("""
 version: 1
 
-# Database Universal Unique Record ID
-uuid: null
+permissions:
+  help: |-
+    Permissions should be structured as a string string
 
-# Permissions should be structured as a string string
-#
-# - : spacer
-# X : where X is a permission type of c, r, s, p, o, q
-#                 c: Allow Calling
-#                 r: Allow Registering
-#                 s: Allow Subscribing
-#                 p: Allow Publishing
-#                 o: Allow Roster Registration
-#                 q: Allow Roster Querying
-#     if the value is on its own, it represents PERM_ALLOW
-#     if structured like the following:
-# X+ : this implies that accessing X is allowed but requires
-#      elevated permissions to do so
-# r! : anything registering with this rule MUST have metadata
-#      registered in the uris orm
-#
-# Example of a perms are
-#    - c+q
-#    - c-s-
-#    - cs
-#    - r!
-#
-# If permissions is an empty array, the role has access to nothing: []
-permissions: []
+    - : spacer
+    X : where X is a permission type of c, r, s, p, o, q
+    c: Allow Calling
+    r: Allow Registering
+    s: Allow Subscribing
+    p: Allow Publishing
+    o: Allow Roster Registration
+    q: Allow Roster Querying
+    if the value is on its own, it represents PERM_ALLOW
+    if structured like the following:
+    X+ : this implies that accessing X is allowed but requires
+    elevated permissions to do so
+    r! : anything registering with this rule MUST have metadata
+    registered in the uris orm
 
-""".strip()
+    Example of a perms are
+    - c+q
+    - c-s-
+    - cs
+    - r!
+
+    If permissions is an empty array, the role has access to nothing: []
+  default: []
+
+""")
+
 
 class NexusRole(NexusRecord):
-    _yaml_template = YAML_TEMPLATE_ROLE
+    _schema = YAML_TEMPLATE_ROLE
     path_format_ = '{parent_path}/{key}/data.yaml'
     ownership_path_format_ = '{parent_path}/{key}/'
     _trie = None

@@ -42,6 +42,7 @@ Usage:
   {script_name} roles dump <uuid> [<path>] [options]
   {script_name} roles load <uuid> [<path>] [options]
   {script_name} uris list [<role>] [options]
+  {script_name} uris clearhistory [options]
   {script_name} devdb create [<admin_user> <admin_pass>] [options]
   {script_name} testdb create [<admin_user> <admin_pass>] [options]
   {script_name} database reindex [options]
@@ -338,6 +339,13 @@ class RoleCommands(Commands):
 
 
 class URICommands(Commands):
+
+    verbs = ['list', 'clearhistory']
+
+    def do_clearhistory(self):
+        for reg_rec in db.uris:
+            reg_rec.history = []
+            reg_rec.save_()
 
     def do_list(self):
         conditions = []

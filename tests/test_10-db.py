@@ -3,9 +3,9 @@
 from lib import *
 
 YAML_PREF_TEST = """
-# this is a test
 something:
   goes:
+    # And more comments
     here: right
     there: 1
 """.strip()

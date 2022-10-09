@@ -79,7 +79,6 @@ REGISTRATIONS = {}
 class DomainComponent(BaseComponent):
     last_sync = None
 
-
     #############################################################################
     # Session Tracking
     # See: https://github.com/wamp-proto/wamp-proto/blob/master/rfc/text/advanced/ap_session_meta_api.md
@@ -303,7 +302,6 @@ class DomainComponent(BaseComponent):
         """
         self.sync()
 
-
     def _vacuum_sessions(self, session_ids):
         start_time = time.time()
         log.info(f"Running session vacuum")
@@ -328,6 +326,10 @@ class DomainComponent(BaseComponent):
                 cookie_obj = db.get(cache_id,'cookie')
             except Exception as ex:
                 log.warning(f"cache_id {cache_id} didn't resolve to a cookie! <{ex}>")
+                continue
+
+            # We need to ensure that we actually have a cookie object
+            if not cookie_obj:
                 continue
 
             try:
@@ -365,6 +367,125 @@ class DomainComponent(BaseComponent):
         self.vacuum_sessions()
         return True
 
+    @wamp_register('.systems.handle.alerts')
+    @wamp_register('systems.handle.alerts')
+    @inlineCallbacks
+    def handle_alerts(self, details=None):
+        """ Scans through the pending disconnect list for any entires that require
+            notification
+        """
+        try:
+            # Do the alerts scan/polling routine
+            db.uris.scan_for_disconnect_timeouts_()
+
+            # Get get all the pending alerts if any to publish to the
+            # right channel
+            alerts = db.uris.receive_alerts_()
+            for warning_type, duration, reg_rec in alerts:
+                notification_message = reg_rec.dict_()
+                log.warn(f"Notification alert for {reg_rec.key}")
+                yield self.publish('system.event.warning.registration',
+                          warning_type,
+                          duration,
+                          notification_message
+                      )
+        except Exception as ex:
+                tb = traceback.format_exc()
+                log.error(f"Unable to process alerts because {ex} {tb}")
+        return True
+
+    @wamp_register('.system.vacuum.registrations')
+    @wamp_register('system.vacuum.registrations')
+    @inlineCallbacks
+    def vacuum_registrations(self, details=None):
+        """ Force-syncronizes the registrations status to the database to ensure that
+            anything that might have desyncronized will have been addressed
+        """
+        start_time = time.time()
+        log.info(f"Running registrations vacuum")
+
+        try:
+            # First we get a list of all the existing URIs in the database that are marked
+            # active
+            inactive_uris = {}
+            for reg_rec in db.uris:
+                if reg_rec.action != 'register':
+                    continue
+                inactive_uris[reg_rec.key] = reg_rec
+
+            # Now get a list of all registrations that are actually active
+            registrations = yield self.call('wamp.registration.list')
+            for match, registration_ids in registrations.items():
+                for registration_id in registration_ids:
+                    try:
+                        reg_data = yield self.call('wamp.registration.get', registration_id)
+                        uri_key = db.uris.generate_key_('register', match, reg_data['uri'])
+
+                        # We expect an active URI to be in the active uris list
+                        # so we'll remove it
+                        if uri_key in inactive_uris:
+                            del inactive_uris[uri_key]
+                        # This is for the weird situation where a known active uri
+                        # is actually *not* in the active uri list. we'll force the
+                        # uri to be added
+                        else:
+                            session_ids = yield self.call('wamp.registration.list_callees', registration_id)
+                            for session_id in session_ids:
+
+                                sess_rec = None
+
+                                # Get some information on the session if possible which allows us
+                                # to set information like where the connection last came from
+                                sess_rec = None
+                                peer = None
+                                authid = None
+                                if session_id and session_id in SESSIONS:
+                                    sess_rec = SESSIONS[session_id]
+                                    details = sess_rec.get('details',{})
+                                    peer, agent = extract_peer_data(details)
+                                    authid = details.get('authid','')
+
+                                # Update the reference in the databse
+                                reg_rec = db.uris.upsert_registered_(
+                                                match,
+                                                reg_data['uri'],
+                                                {
+                                                    'match': match,
+                                                    'invoke': reg_data['invoke'],
+                                                    'active': True,
+                                                    'create': reg_data['created'],
+                                                    'system': not sess_rec, # system/trusted have no info so we cheat
+                                                    'authid': authid,
+                                                    'peer': peer,
+                                                    'session_id': session_id,
+                                                    'disconnect': None,
+                                                    'disconnect_warn_last': None,
+                                                }
+                                            )
+
+                                REGISTRATIONS[registration_id] = reg_rec.key
+
+                            pass
+                    except Exception as ex:
+                        log.warn(f"Error getting information about a registration: <{type(ex)}>{ex}")
+
+            # Remove registrations for those records that are not active but
+            # marked as active
+            for uri_key, reg_rec in inactive_uris.items():
+
+                # Mark this registration as dead
+                log.warn(f"Marking {uri_key} inactive")
+                reg_rec.mark_unregistered_()
+
+
+        except Exception as ex:
+            tb = traceback.format_exc()
+            log.info(f"Vacuum Registrations Exception! {ex} {tb}")
+
+        elapsed = time.time() - start_time
+        log.info(f"Registration vacuum took {elapsed:0.04f} seconds")
+
+        return True
 
     def vacuum(self):
         """ Runs the process that cleans up the database
@@ -389,7 +510,14 @@ class DomainComponent(BaseComponent):
             log.info(f"Running slow part of vacuum")
             controller.vacuum()
             elapsed = time.time() - start_time
+
+            # We also want to run through and clean out what URIs are registered
+            # as well as which ones are not
+            log.info("Running registrations vacuum")
+            self.vacuum_registrations()
+
             log.info(f"System vacuum took {elapsed:0.02f} seconds")
+
         threads.deferToThread(slow_vacuum)
 
     @wamp_register('.system.vacuum')
@@ -487,60 +615,58 @@ class DomainComponent(BaseComponent):
         pass
 
     @wamp_subscribe('wamp.registration.on_register')
+    @inlineCallbacks
     def registration_on_register(self, session_id, registration_id, details=None ):
         """ When we get a notification for a new registration, we want to log
             its existance in the database along with tracking metadata such as
             source and connection times
         """
         try:
-            def on_register_data( reg_data ):
-                # sess_data = {
-                #    'id': 1979701189101083,
-                #    'created': '2021-09-26T16:32:22.704Z',
-                #    'uri': 'com.izaber.wamp.my.apikeys.delete',
-                #    'match': 'exact',
-                #    'invoke': 'single'
-                # }
 
-                # Start the new record off
-                uri = reg_data['uri']
-                match = reg_data['match']
-                invoke = reg_data['invoke']
+            reg_data = yield self.call('wamp.registration.get', registration_id)
 
-                # Get some information on the session if possible which allows us
-                # to set information like where the connection last came from
-                sess_rec = None
-                peer = None
-                authid = None
-                if session_id and session_id in SESSIONS:
-                    sess_rec = SESSIONS[session_id]
-                    details = sess_rec.get('details',{})
-                    peer, agent = extract_peer_data(details)
-                    authid = details.get('authid','')
+            # sess_data = {
+            #    'id': 1979701189101083,
+            #    'created': '2021-09-26T16:32:22.704Z',
+            #    'uri': 'com.izaber.wamp.my.apikeys.delete',
+            #    'match': 'exact',
+            #    'invoke': 'single'
+            # }
 
-                # Update the reference in the databse
-                reg_rec = db.uris.upsert_(
-                                'register',
-                                match,
-                                uri,
-                                {
-                                    'match': match,
-                                    'invoke': invoke,
-                                    'active': True,
-                                    'create': reg_data['created'],
-                                    'system': not sess_rec, # system/trusted have no info so we cheat
-                                    'peer': peer,
-                                    'authid': authid,
-                                }
-                            )
+            # Start the new record off
+            uri = reg_data['uri']
+            match = reg_data['match']
+            invoke = reg_data['invoke']
 
-                REGISTRATIONS[registration_id] = reg_rec.key
+            # Get some information on the session if possible which allows us
+            # to set information like where the connection last came from
+            sess_rec = None
+            peer = None
+            authid = None
+            if session_id and session_id in SESSIONS:
+                sess_rec = SESSIONS[session_id]
+                details = sess_rec.get('details',{})
+                peer, agent = extract_peer_data(details)
+                authid = details.get('authid','')
 
-                # Let's submit a log message about a registration coming online
-                log.info(f"REG {reg_rec.match}://{reg_rec.uri} from {reg_rec.authid}@{reg_rec.peer}")
+            # Update the reference in the databse
+            reg_rec = db.uris.upsert_registered_(
+                            match,
+                            uri,
+                            {
+                                'match': match,
+                                'invoke': invoke,
+                                'active': True,
+                                'create': reg_data['created'],
+                                'system': not sess_rec, # system/trusted have no info so we cheat
+                                'peer': peer,
+                                'authid': authid,
+                                'disconnect': None,
+                                'disconnect_warn_last': None,
+                            }
+                        )
 
-            self.call('wamp.registration.get', registration_id)\
-                .addCallback(on_register_data)
+            REGISTRATIONS[registration_id] = reg_rec.key
 
         except Exception as ex:
             log.error(f"ERROR in nexus' registration_on_register: {ex}")
@@ -566,18 +692,17 @@ class DomainComponent(BaseComponent):
             if not registration_id:
                 return
 
-            # Figure out our internal record for the registered URI
+            # Figure out our internal record for the registered URI then
+            # mark it unregistered
             key_hash = REGISTRATIONS.get(registration_id)
-            reg_rec = db.uris[key_hash]
+            if not key_hash:
+                return
 
-            # Let's submit a log message about the loss of the registration
-            log.warn(f"REGLOST {reg_rec.match}://{reg_rec.uri} from {reg_rec.authid}@{reg_rec.peer}")
+            reg_rec = db.uris.get_(key_hash)
+            if not reg_rec:
+                return
+            reg_rec.mark_unregistered_()
 
-            # Mark this registration as dead
-            reg_rec.active = False
-
-            # Record the changes
-            reg_rec.save_()
         except Exception as ex:
             log.error(f"ERROR in nexus' registration_on_delete: {ex}")
 
@@ -857,6 +982,11 @@ class DomainComponent(BaseComponent):
         """
         self.vacuum_sessions()
 
+    def cron_vacuum_registrations(self):
+        """ Runs the process that removes old sessions
+        """
+        self.vacuum_registrations()
+
     def cron_vacuum(self):
         """ Runs the process that cleans up the database
         """
@@ -867,6 +997,13 @@ class DomainComponent(BaseComponent):
         """
         self.sync()
 
+    def cron_handle_alerts(self):
+        """ Scan the URI action
+        """
+        def handle_alerts():
+            self.handle_alerts()
+        threads.deferToThread(handle_alerts)
+
     #############################################################################
     # OnJoining the crossbar router
     #############################################################################
@@ -874,16 +1011,22 @@ class DomainComponent(BaseComponent):
     @inlineCallbacks
     def onJoin(self, details):
 
-        for value in super().onJoin(details):
-            yield value
-
         # Wipe old sessions away if anything is here
         for session_id, data in list(SESSIONS.items()):
             self.session_delete(session_id)
         SESSIONS.clear()
         log.info(f"Cleared old sessions")
 
-        # We setup a scheduler to run every 5 minutes to clean up the database
+        # Load in the existing sessions
+        sess_ids = yield self.call('wamp.session.list')
+        for sess_id in sess_ids:
+            sess_rec = yield self.call('wamp.session.get', sess_id)
+
+        # Then do the registrations
+        for value in super().onJoin(details):
+            yield value
+
+        # We setup a scheduler to run every 2 minutes to clean up the database
         # and do other periodic tasks. This just schedules, the actual running of
         # the code gets done in the nexus.cron.Cron object which executes on its
         # own separate thread.
@@ -911,8 +1054,13 @@ class DomainComponent(BaseComponent):
             if db_config.get('startup_vacuum'):
                 self.vacuum()
 
+            # Clean up the registration database so that the states are correct
+            self.vacuum_registrations()
+
             # Then schedule it
             schedule.every(2).minutes.do(self.cron_vacuum_sessions).tag('component')
+            schedule.every(2).minutes.do(self.cron_vacuum_registrations).tag('component')
+            schedule.every(1).seconds.do(self.cron_handle_alerts).tag('component')
 
             # Start the scheduler loop
             initialize('crossbar')
