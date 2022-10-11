@@ -418,17 +418,27 @@ class DomainComponent(BaseComponent):
             for match, registration_ids in registrations.items():
                 for registration_id in registration_ids:
                     try:
-                        reg_data = yield self.call('wamp.registration.get', registration_id)
-                        uri_key = db.uris.generate_key_('register', match, reg_data['uri'])
+                        reg_data = None
+                        uri_key = REGISTRATIONS.get(registration_id)
+                        if not uri_key:
+                            reg_data = yield self.call('wamp.registration.get', registration_id)
+                            uri_key = db.uris.generate_key_('register', match, reg_data['uri'])
 
                         # We expect an active URI to be in the active uris list
                         # so we'll remove it
                         if uri_key in inactive_uris:
                             del inactive_uris[uri_key]
+
                         # This is for the weird situation where a known active uri
                         # is actually *not* in the active uri list. we'll force the
                         # uri to be added
                         else:
+
+                            # This is unlikely to be fired but just in case, since we need the information
+                            # related to the registration, we'll acquire it
+                            if not reg_data:
+                                reg_data = yield self.call('wamp.registration.get', registration_id)
+
                             session_ids = yield self.call('wamp.registration.list_callees', registration_id)
                             for session_id in session_ids:
 
@@ -465,16 +475,11 @@ class DomainComponent(BaseComponent):
 
                                 REGISTRATIONS[registration_id] = reg_rec.key
 
-                            pass
                     except Exception as ex:
                         log.warn(f"Error getting information about a registration: <{type(ex)}>{ex}")
 
-            # Remove registrations for those records that are not active but
-            # marked as active
+            # Mark registrations inactive for those URIs that are discovered inactive
             for uri_key, reg_rec in inactive_uris.items():
-
-                # Mark this registration as dead
-                log.warn(f"Marking {uri_key} inactive")
                 reg_rec.mark_unregistered_()
 
 
