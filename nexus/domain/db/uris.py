@@ -3,6 +3,7 @@ import threading
 import traceback
 
 from .common import *
+from izaber import config
 
 from nexus.log import log
 
@@ -28,7 +29,7 @@ HISTORY_SIZE = 100
 DISCONNECTION_COUNT_FRAME_SIZE = 600
 
 COLUMNS = NexusSchema.from_yaml("""
-version: 1.5
+version: 1.6
 
 uri:
   help: |-
@@ -148,6 +149,17 @@ disconnect_count_warn_last:
   default:
   type: int
 
+zombie_lifespan:
+  help: |-
+    When set to a non-zero value, this will indicate the approximate number of seconds that the system
+    will wait before simply removing the URI record.
+      - a null setting here will simply pull the value from the global izaber.yaml setting
+      - a boolean True value will disable the reaping on this URI
+      - a boolean False will enable immediate reaping
+      - 0 and up will become number of seconds to wait before removing a URI.
+    If a URI reregisters, countdown will be reset
+  default:
+
 """)
 
 class NexusURI(NexusRecord):
@@ -158,6 +170,10 @@ class NexusURI(NexusRecord):
 
     path_format_ = '{parent_path}/{key}/data.yaml'
     ownership_path_format_ = '{parent_path}/{key}/'
+
+    def delete_(self):
+        self.parent_._uris_disconnected.pop(self.key)
+        return super().delete_()
 
     def documented(self):
         # We return True if the owner and description have been defined
@@ -203,12 +219,19 @@ class NexusURI(NexusRecord):
 
         # Is this already marked disconnected?
         if self.key in self.parent_._uris_disconnected and not force:
+
+            # If not disconnection time has been registered, we'll just fake one with
+            # the current time
+            if not self.disconnect:
+                self.disconnect = int(time.time())
+                self.save_()
             return
 
         # Note when the registration fell off the bus
         now = int(time.time())
 
-        self.disconnect = now
+        if not self.disconnect:
+            self.disconnect = now
 
         # When the last warning was sent (this is a fresh disconnect)
         self.disconnect_warn_last = None
@@ -350,6 +373,67 @@ class NexusURI(NexusRecord):
 
         return staleness
 
+    def when_to_reap_(self):
+        """ Returns timestamp of when this record should be removed. Note that
+            if for any reason the URI should not be removed, it will return a
+            None
+        """
+
+        # Ignore any active connections
+        if self.active: return
+
+        # Figure out what the lifespan parameter should be
+        zombie_lifespan = self.zombie_lifespan
+
+        # Find out when the last disconnect was
+        last_disconnect = self.disconnect
+
+        # If the local zombie_lifespan is None, we'll just use
+        # the application global setting
+        if zombie_lifespan is None:
+            app_zombie_lifespan = config.nexus.db.zombie_lifespan
+            if app_zombie_lifespan is None \
+              or app_zombie_lifespan is False \
+              or app_zombie_lifespan is True:
+                  return
+            zombie_lifespan = app_zombie_lifespan
+
+        # A falsy value means we're going to disable right away
+        if not zombie_lifespan:
+           return last_disconnect
+
+        # Do not cull setting
+        if zombie_lifespan is True:
+            return
+
+        try:
+            return last_disconnect + int(zombie_lifespan)
+        except Exception as ex:
+            log.error(f"Unable to calculate zombie cull date due to <{type(ex)}>{ex}")
+            return
+
+    def should_reap_(self, now=None):
+        """ Returns numeric delta of how overdue for reaping this record is when reap
+            is called. If this URi should not be reaped, returns None
+        """
+        if not now: now = int(time.time())
+
+        reap_time = self.when_to_reap_()
+
+        # If reap_time is None we treat that as "there is no time
+        # in the future we should delete"
+        if reap_time is None:
+            return
+
+        # If the reap time has not yet been reached (so greater than
+        # now), we'll simply return
+        if reap_time > now:
+            return
+
+        # At this point, we know that the entry must be reaped. We
+        # return the amount of time elapsed between disconnect and now
+        return int( now - self.disconnect )
+
 class NexusURIs(_AuthorizedNexusCollection):
     _record_class = NexusURI
     _role_permissions = {
@@ -409,6 +493,29 @@ class NexusURIs(_AuthorizedNexusCollection):
         reg_rec.mark_registered_(force=True)
         return reg_rec
 
+    def scan_for_zombie_reaps_(self):
+        """ This should be something that's periodically iterated
+            upon to detect zombied entries and remove them from the local cache
+            This return a data structure like:
+            [
+              [ reap_overdue_seconds, reaped_uri_rec ],
+              ...
+              and so on
+            ]
+        """
+        reaped_uris = []
+        for uri_key, uri_rec in list(self._uris_disconnected.items()):
+            try:
+                reap_overdue = uri_rec.should_reap_()
+                if reap_overdue is None:
+                    continue
+                uri_rec.delete_()
+                reaped_uris.append([reap_overdue, uri_rec])
+                log.warn(f"ZOMBIE_REAP {reap_overdue} {uri_key}")
+            except Exception as ex:
+                log.error(f"Unable to test Zombie reap status for {uri_key} due to <{type(ex)}>{ex}")
+        return reaped_uris
+
     def scan_for_disconnect_timeouts_(self):
         """ This should be something that's periodically iterated
             upon to detect dropped registrations of concern. This will simply
@@ -419,7 +526,8 @@ class NexusURIs(_AuthorizedNexusCollection):
             try:
                 # Skip any warn entries that are not required to be addressed
                 alert_required = uri_rec.disconnect_downtime_alert_required_()
-                if not alert_required: continue
+                if not alert_required:
+                    continue
 
                 # Note the type of warning
                 if uri_rec.disconnect_warn_last:

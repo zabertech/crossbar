@@ -482,10 +482,19 @@ class DomainComponent(BaseComponent):
             for uri_key, reg_rec in inactive_uris.items():
                 reg_rec.mark_unregistered_()
 
+            # Go through and reap any zombie URIs
+            reaped_uris = db.uris.scan_for_zombie_reaps_()
+            for reap_overdue, reap_uri in reaped_uris:
+                notification_message = reap_uri.dict_()
+                yield self.publish('system.event.warning.registration',
+                          'zombie_reap',
+                          reap_overdue,
+                          notification_message
+                      )
 
         except Exception as ex:
             tb = traceback.format_exc()
-            log.info(f"Vacuum Registrations Exception! {ex} {tb}")
+            log.error(f"Vacuum Registrations Exception! {ex} {tb}")
 
         elapsed = time.time() - start_time
         log.info(f"Registration vacuum took {elapsed:0.04f} seconds")
@@ -609,7 +618,6 @@ class DomainComponent(BaseComponent):
             tb = traceback.format_exc()
             log.error(f"Authorized crashed for '{action}://{uri}': {ex} {tb}")
             return False
-
 
     @wamp_register('.system.document.get')
     @wamp_register('system.document.get')
@@ -1072,5 +1080,6 @@ class DomainComponent(BaseComponent):
             log.info(f"Internal cron schedule started")
 
         except Exception as ex:
-            log.error(f"Unable to finalize startup sequence (sync, vacuum, scheduler, and izaber.initialize) : <{ex}>")
+            log.error(f"Unable to finalize startup sequence (sync, "
+                      f"vacuum, scheduler, and izaber.initialize) : <{ex}>")
 

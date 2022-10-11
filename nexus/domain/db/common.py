@@ -17,7 +17,7 @@ import re
 from nexus.constants import PERM_DENY, PERM_REQUIRE_ELEVATED, PERM_ALLOW, \
                             PERM_REQUIRE_DOCUMENTATION, \
                             PERMS, TRAIT_TO_CODE, PERM_REGEX, PERM_TO_CODE, PERM_TO_NAME, \
-                            TRAITS, TRAIT_TO_NAME
+                            TRAITS, TRAIT_TO_NAME, SECONDS_IN_DAY, SECONDS_IN_WEEK
 from nexus.orm import NexusRecord, NexusCollection, NexusField, NexusSchema
 
 class Perm:

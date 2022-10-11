@@ -26,6 +26,16 @@ default:
         # low downtime transitions
         disable_startup_reset: False
 
+        # When set to a non-zero value, this will indicate the number of seconds that the system
+        # will wait before simply removing the URI record.
+        #   - a null value will cause the URI to be immediately reaped
+        #   - a boolean False value will disable the reaping on this URI
+        #   - a boolean True value will immediately reap this URI
+        #   - 0 and up will become number of seconds to wait before removing a URI.
+        # If a URI reregisters, countdown will be reset. This value can be overridden at the
+        # URI record level with key by the same name
+        zombie_lifespan: False
+
   crossbar: 
     version: 2
     workers:
