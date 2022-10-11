@@ -55,6 +55,16 @@ def test_connect():
                     ).start()
         assert client
 
+        # Do a valid connection where we mangle the case of the login
+        client_casing = swampyer.WAMPClientTicket(
+                        url="ws://localhost:8282/ws",
+                        realm="izaber",
+                        username=login.upper(),
+                        password=password,
+                    ).start()
+        assert client_casing
+        res = client_casing.call('auth.whoami')
+
         ###############################################################
         # Unix Socket Connection
         ###############################################################

@@ -129,6 +129,10 @@ class Controller:
             2. Creates the CookieSession tracking to ensure
                 private data can be crosslinked across sessions
         """
+
+        # Force the login to be lower case
+        login = login.lower()
+
         res = self.authenticate(login, password)
         if not res:
             return False
@@ -165,6 +169,7 @@ class Controller:
         return {
             'role': res.role,
             'extra': extra,
+            'authid': login,
             'auth_source': res.auth_source, 
             'cookie_obj': cookie_obj,
         }
