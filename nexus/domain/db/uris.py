@@ -391,7 +391,7 @@ class NexusURI(NexusRecord):
         # If the local zombie_lifespan is None, we'll just use
         # the application global setting
         if zombie_lifespan is None:
-            app_zombie_lifespan = config.nexus.db.zombie_lifespan
+            app_zombie_lifespan = config.nexus.db.get('zombie_lifespan')
             if app_zombie_lifespan is None \
               or app_zombie_lifespan is False \
               or app_zombie_lifespan is True:
@@ -409,7 +409,7 @@ class NexusURI(NexusRecord):
         try:
             return last_disconnect + int(zombie_lifespan)
         except Exception as ex:
-            log.error(f"Unable to calculate zombie cull date due to <{type(ex)}>{ex}")
+            log.error(f"Unable to calculate zombie cull date due to <{ex}>")
             return
 
     def should_reap_(self, now=None):
@@ -419,6 +419,12 @@ class NexusURI(NexusRecord):
         if not now: now = int(time.time())
 
         reap_time = self.when_to_reap_()
+
+        if reap_time:
+            log.debug(f"Reap {self.key} after {now} - {reap_time} = {now - reap_time}")
+        else:
+            log.debug(f"Reap {self.key} not required")
+
 
         # If reap_time is None we treat that as "there is no time
         # in the future we should delete"
@@ -513,7 +519,8 @@ class NexusURIs(_AuthorizedNexusCollection):
                 reaped_uris.append([reap_overdue, uri_rec])
                 log.warn(f"ZOMBIE_REAP {reap_overdue} {uri_key}")
             except Exception as ex:
-                log.error(f"Unable to test Zombie reap status for {uri_key} due to <{type(ex)}>{ex}")
+                tb = traceback.format_exc()
+                log.error(f"Unable to test Zombie reap status for {uri_key} due to <{ex}> {tb}")
         return reaped_uris
 
     def scan_for_disconnect_timeouts_(self):
@@ -548,7 +555,7 @@ class NexusURIs(_AuthorizedNexusCollection):
 
             except Exception as ex:
                 tb = traceback.format_exc()
-                log.error(f"Unable to process alert because {ex} {tb}")
+                log.error(f"Unable to process alert because <{ex}> {tb}")
 
     def receive_alerts_(self):
         """ Fetch and flushes the alerts pending

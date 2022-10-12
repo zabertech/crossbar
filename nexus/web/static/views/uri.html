@@ -149,6 +149,37 @@
 </div>
 
 
+<h2 class="mt-4"><i class="bi bi-gear"></i> Configuration</h2>
+
+
+<div class="row g-3">
+  <div class="col-md-12">
+    <p>When set to a non-zero value, this will indicate the approximate number of seconds that the system
+    will wait before simply removing the URI record.
+    <ul>
+			<li>a null setting here will simply pull the value from the global izaber.yaml setting
+			<li>a boolean True value will disable the reaping on this URI
+			<li> a boolean False will enable immediate reaping
+			<li> 0 and up will become number of seconds to wait before removing a URI.
+    </ul>
+		<p>If a URI reregisters, countdown will be reset</p>
+  </div>
+</div>
+
+
+<div class="row g-3">
+  <div class="col-md-4">
+    <label class="col-sm-4 col-form-label">zombie_lifespan</label>
+    <input type="text"
+            class="form-control"
+            data-link=""
+            name="zombie_lifespan"
+            aria-label="Remove entry after disconnected for X seconds"
+            placeholder="Remove After Disconnected (seconds)">
+  </div>
+</div>
+
+
 <h2 class="mt-4"><i class="bi bi-clock-history"></i> Connection History</h2>
 
 <div class="card">

@@ -179,7 +179,7 @@ class DomainComponent(BaseComponent):
             return bool(controller.authenticate(login, password))
         except Exception as ex:
             peer, agent = extract_peer_data(options)
-            log.error(f"Couldn't authenticate '{login}' from {peer}<{agent}> due to {ex}")
+            log.error(f"Couldn't authenticate '{login}' from {peer}<{agent}> due to <{ex}>")
             return False
 
     #############################################################################
@@ -223,7 +223,7 @@ class DomainComponent(BaseComponent):
 
         except Exception as ex:
             tb = traceback.format_exc()
-            log.error(f"Authorizer error for {authid}<{auth_role}> '{action}://{uri}': {ex} {tb}")
+            log.error(f"Authorizer error for {authid}<{auth_role}> '{action}://{uri}': <{ex}> {tb}")
             return False
 
     def get_extra_from_details(self, details):
@@ -356,7 +356,7 @@ class DomainComponent(BaseComponent):
             deferred.addCallback(self._vacuum_sessions)
             deferred.addErrback(errHandler)
         except Exception as ex:
-            log.error(f"Vacuum Sessions Exception! {ex}")
+            log.error(f"Vacuum Sessions Exception! <{ex}>")
         return True
 
     @wamp_register('.system.vacuum.sessions')
@@ -391,7 +391,7 @@ class DomainComponent(BaseComponent):
                       )
         except Exception as ex:
                 tb = traceback.format_exc()
-                log.error(f"Unable to process alerts because {ex} {tb}")
+                log.error(f"Unable to process alerts because <{ex}> {tb}")
         return True
 
     @wamp_register('.system.vacuum.registrations')
@@ -423,6 +423,7 @@ class DomainComponent(BaseComponent):
                         if not uri_key:
                             reg_data = yield self.call('wamp.registration.get', registration_id)
                             uri_key = db.uris.generate_key_('register', match, reg_data['uri'])
+                            REGISTRATIONS[registration_id] = uri_key
 
                         # We expect an active URI to be in the active uris list
                         # so we'll remove it
@@ -435,7 +436,8 @@ class DomainComponent(BaseComponent):
                         else:
 
                             # This is unlikely to be fired but just in case, since we need the information
-                            # related to the registration, we'll acquire it
+                            # related to the registration, we'll acquire it. There is a strange instance where the
+                            # entry will be empty when we're dealing with a system registration
                             if not reg_data:
                                 reg_data = yield self.call('wamp.registration.get', registration_id)
 
@@ -494,7 +496,7 @@ class DomainComponent(BaseComponent):
 
         except Exception as ex:
             tb = traceback.format_exc()
-            log.error(f"Vacuum Registrations Exception! {ex} {tb}")
+            log.error(f"Vacuum Registrations Exception! <{ex}> {tb}")
 
         elapsed = time.time() - start_time
         log.info(f"Registration vacuum took {elapsed:0.04f} seconds")
@@ -616,7 +618,7 @@ class DomainComponent(BaseComponent):
 
         except Exception as ex:
             tb = traceback.format_exc()
-            log.error(f"Authorized crashed for '{action}://{uri}': {ex} {tb}")
+            log.error(f"Authorized crashed for '{action}://{uri}': <{ex}> {tb}")
             return False
 
     @wamp_register('.system.document.get')
@@ -682,7 +684,7 @@ class DomainComponent(BaseComponent):
             REGISTRATIONS[registration_id] = reg_rec.key
 
         except Exception as ex:
-            log.error(f"ERROR in nexus' registration_on_register: {ex}")
+            log.error(f"ERROR in nexus' registration_on_register: <{ex}>")
 
     @wamp_subscribe('wamp.registration.on_unregister')
     def registration_on_unregister(self, session_id, registration_id, details=None ):
@@ -717,7 +719,7 @@ class DomainComponent(BaseComponent):
             reg_rec.mark_unregistered_()
 
         except Exception as ex:
-            log.error(f"ERROR in nexus' registration_on_delete: {ex}")
+            log.error(f"ERROR in nexus' registration_on_delete: <{ex}>")
 
 
     #############################################################################
