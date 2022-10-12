@@ -326,6 +326,29 @@ class RouterBase(object):
             elif isinstance(msg, message.Error) and msg.request_type == message.Invocation.MESSAGE_TYPE:
                 self._dealer.processInvocationError(session, msg)
 
+            # WTF moment where we end up pinging the server with an
+            # extra authenticate request. We have, according to this
+            # already authenticated so we'll just resend the welcome
+            # message to make the client happy. We do want to flag this
+            # in the logs so that we can potentially review it (or not)
+            elif isinstance(msg, message.Authenticate):
+                msg = message.Welcome(session._session_id,
+                                      session._roles,
+                                      realm=session._realm,
+                                      authid=session._authid,
+                                      authrole=session._authrole,
+                                      authmethod=session._authmethod,
+                                      authprovider=session._authprovider,
+                                      authextra=session._authextra,
+                                      # Bummer here since we don't have it
+                                      custom=session._custom )
+                self.send(session, msg)
+                self.log.warn(
+                    f"UNEXPECTED_AUTHENTICATE for session {session._session_id} {session._authid}"
+                    f" using {session._authmethod}/{session._authprovider}"
+                    f" Already authenticated but sending extra Welcome message anyways"
+                )
+
             else:
                 raise ProtocolError("Unexpected message {0}".format(msg.__class__))
         except ProtocolError:
