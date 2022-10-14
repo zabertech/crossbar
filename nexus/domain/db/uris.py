@@ -356,7 +356,18 @@ class NexusURI(NexusRecord):
         elif not self.disconnect:
             return
 
-        return self.disconnect + self.disconnect_warn_after
+        # Find out when the last disconnect was
+        base_time = self.disconnect
+
+        # Let's add the grace period from the server
+        server_base_time = self.db_.start_time \
+                          + config.nexus.db.get('notification_startup_grace', 120)
+
+        # We opt to use the end of the grace period if we've just recently started
+        if server_base_time > base_time: 
+            base_time = server_base_time
+
+        return base_time + self.disconnect_warn_after
 
     def disconnect_downtime_alert_required_(self, now=None):
         """ Returns if we need to send a disconnection notice, we return
@@ -386,7 +397,15 @@ class NexusURI(NexusRecord):
         zombie_lifespan = self.zombie_lifespan
 
         # Find out when the last disconnect was
-        last_disconnect = self.disconnect
+        base_time = self.disconnect
+
+        # Let's add the grace period from the server
+        server_base_time = self.db_.start_time \
+                          + config.nexus.db.get('notification_startup_grace', 120)
+
+        # We opt to use the end of the grace period if we've just recently started
+        if server_base_time > base_time: 
+            base_time = server_base_time
 
         # If the local zombie_lifespan is None, we'll just use
         # the application global setting
@@ -400,14 +419,14 @@ class NexusURI(NexusRecord):
 
         # A falsy value means we're going to disable right away
         if not zombie_lifespan:
-           return last_disconnect
+           return base_time
 
         # Do not cull setting
         if zombie_lifespan is True:
             return
 
         try:
-            return last_disconnect + int(zombie_lifespan)
+            return base_time + int(zombie_lifespan)
         except Exception as ex:
             log.error(f"Unable to calculate zombie cull date due to <{ex}>")
             return

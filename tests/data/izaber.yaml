@@ -7,6 +7,7 @@ default:
       path: 'db'
       skip_sync: False
       skip_vacuum: False
+      notification_startup_grace: 0
     ldap:
       server:
         - host: file://ldap-mock-data.yaml
