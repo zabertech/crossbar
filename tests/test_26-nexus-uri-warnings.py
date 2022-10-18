@@ -27,7 +27,20 @@ def test_connect():
         # We want to listen for disconnection events
         EVENTS = []
         def handler_warnings(event, warning_type, duration, details):
+            print(f"WARNING: {warning_type.upper()} {details['key']}")
             EVENTS.append((warning_type, duration, details))
+
+        def dump_events():
+            print(f"---- {len(EVENTS)} events queued ----")
+            for warning_type, duration, event in EVENTS:
+                print(f"{warning_type}: {event['key']}")
+
+        def find_event(needle_warning):
+            for event in EVENTS:
+                if needle_warning != event[0]: continue
+                return event
+            dump_events()
+            raise Exception(f"Need {needle_warning} not found!")
 
         client.subscribe('system.event.warning.registration', handler_warnings)
 
@@ -101,9 +114,11 @@ def test_connect():
             client.unregister(result.registration_id)
             time.sleep(0.1)
 
+        dump_events()
         assert EVENTS
         assert len(EVENTS) >= 1
-        warning_type, duration, event = EVENTS.pop(0)
+        dump_events()
+        warning_type, duration, event = find_event('disconnect_count')
 
         # First notification
         assert event['uri'] == uri
@@ -120,7 +135,7 @@ def test_connect():
 
         assert EVENTS
         assert len(EVENTS) >= 1
-        warning_type, duration, event = EVENTS.pop(0)
+        warning_type, duration, event = find_event('disconnect_count_reminder')
 
         # First notification
         assert event['uri'] == uri

@@ -383,7 +383,6 @@ class DomainComponent(BaseComponent):
             alerts = db.uris.receive_alerts_()
             for warning_type, duration, reg_rec in alerts:
                 notification_message = reg_rec.dict_()
-                log.warn(f"Notification alert for {reg_rec.key}")
                 yield self.publish('system.event.warning.registration',
                           warning_type,
                           duration,
@@ -464,14 +463,11 @@ class DomainComponent(BaseComponent):
                                                 {
                                                     'match': match,
                                                     'invoke': reg_data['invoke'],
-                                                    'active': True,
                                                     'create': reg_data['created'],
                                                     'system': not sess_rec, # system/trusted have no info so we cheat
                                                     'authid': authid,
                                                     'peer': peer,
                                                     'session_id': session_id,
-                                                    'disconnect': None,
-                                                    'disconnect_warn_last': None,
                                                 }
                                             )
 
@@ -671,15 +667,17 @@ class DomainComponent(BaseComponent):
                             {
                                 'match': match,
                                 'invoke': invoke,
-                                'active': True,
                                 'create': reg_data['created'],
                                 'system': not sess_rec, # system/trusted have no info so we cheat
-                                'peer': peer,
                                 'authid': authid,
-                                'disconnect': None,
-                                'disconnect_warn_last': None,
-                            }
+                                'peer': peer,
+                                'session_id': session_id,
+                            },
+                            force=True
                         )
+
+            # Let's submit a log message about a registration coming online
+            log.info(f"REG {reg_rec.match}://{reg_rec.uri} from {reg_rec.authid}@{reg_rec.peer}")
 
             REGISTRATIONS[registration_id] = reg_rec.key
 
@@ -716,7 +714,13 @@ class DomainComponent(BaseComponent):
             reg_rec = db.uris.get_(key_hash)
             if not reg_rec:
                 return
-            reg_rec.mark_unregistered_()
+
+            # Let's submit a log message about the loss of the registration if we've noticed
+            # that we're switching states
+            log.info(f"REGLOST {reg_rec.match}://{reg_rec.uri} from {reg_rec.authid}@{reg_rec.peer}")
+
+            # We force this since we want to ensure proper recording of the disconnect
+            reg_rec.mark_unregistered_(force=True)
 
         except Exception as ex:
             log.error(f"ERROR in nexus' registration_on_delete: <{ex}>")

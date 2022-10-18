@@ -187,9 +187,6 @@ class NexusURI(NexusRecord):
         if self.active and not force:
             return
 
-        # Let's submit a log message about a registration coming online
-        log.info(f"REG {self.match}://{self.uri} from {self.authid}@{self.peer}")
-
         # Mark this registration as dead
         self.active = True
 
@@ -206,10 +203,22 @@ class NexusURI(NexusRecord):
         # Is this entry in the list of concerns? let's remove it
         self.parent_._uris_disconnected.pop(self.key, None)
 
+        # If this registration was previously marked dead with a
+        # warning sent out, let's the user know that we've now
+        # recovered
+        if self.disconnect_warn_last:
+            self.disconnect_warn_last = None
+            recovery_type = 'disconnect_recovery'
+            self.parent_._alerts_pending.append((recovery_type, now, self))
+            log.warn(f"{recovery_type.upper()} {now} {self.key}")
+
         # Are we looking at this something that requires a disconnection rate
         # warning? If we have gone under the amount, we'll reset for now
         if not self.disconnect_count_exceeded_() and self.disconnect_count_warn_last:
-            self.disconnect_warn_last = None
+            self.disconnect_count_warn_last = None
+            recovery_type = 'disconnect_count_recovery'
+            self.parent_._alerts_pending.append((recovery_type, now, self))
+            log.warn(f"{recovery_type.upper()} {now} {self.key}")
 
         self.save_()
 
@@ -217,31 +226,17 @@ class NexusURI(NexusRecord):
         """ Called on URI when it should be marked as disconnected
         """
 
-        # Is this already marked disconnected?
-        if self.key in self.parent_._uris_disconnected and not force:
-
-            # If not disconnection time has been registered, we'll just fake one with
-            # the current time
-            if not self.disconnect:
-                self.disconnect = int(time.time())
-                self.save_()
-            return
-
-        # Note when the registration fell off the bus
         now = int(time.time())
 
+        # Mark when the URI was disconnected. If it already has a disconnect time, we don't
+        # override it. Clearing it is the responsibility of the on-registration handler
         if not self.disconnect:
             self.disconnect = now
+            self.save_()
 
-        # When the last warning was sent (this is a fresh disconnect)
-        self.disconnect_warn_last = None
-
-        self.save_()
-
-        # Let's submit a log message about the loss of the registration if we've noticed
-        # that we're switching states
-        if self.active:
-            log.warn(f"REGLOST {self.match}://{self.uri} from {self.authid}@{self.peer}")
+        # Is this already marked disconnected?
+        if self.key in self.parent_._uris_disconnected and not force:
+            return
 
         # Mark this registration as dead
         self.active = False
@@ -509,13 +504,13 @@ class NexusURIs(_AuthorizedNexusCollection):
 
         return rec
 
-    def upsert_registered_(self, match, uri, data):
+    def upsert_registered_(self, match, uri, data, force=False):
         """ When we receive a new registration and we want
             to mark the registration as active, we'd do
             an upsert with a new records.
         """
         reg_rec = self.upsert_('register', match, uri, data)
-        reg_rec.mark_registered_(force=True)
+        reg_rec.mark_registered_(force=force)
         return reg_rec
 
     def scan_for_zombie_reaps_(self):
@@ -548,7 +543,7 @@ class NexusURIs(_AuthorizedNexusCollection):
             run and add entries to the self._alerts_pending list
         """
         now = time.time()
-        for uri_key, uri_rec in self._uris_disconnected.items():
+        for uri_key, uri_rec in list(self._uris_disconnected.items()):
             try:
                 # Skip any warn entries that are not required to be addressed
                 alert_required = uri_rec.disconnect_downtime_alert_required_()

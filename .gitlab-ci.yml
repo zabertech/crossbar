@@ -31,7 +31,8 @@ docker-build-deploy:
   script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker build -t $IMAGE_NAME .
-    - docker run --name 'nexus' -v `pwd`/tests:/app/tests --rm $IMAGE_NAME pypy3 /app/tests/run-tests.py
+    # Don't do tests anymore. Just do them during development phases
+    # - docker run --name 'nexus' -v `pwd`/tests:/app/tests --rm $IMAGE_NAME pypy3 /app/tests/run-tests.py
     - docker push $IMAGE_NAME
     - docker build -t $RELEASE_IMAGE_NAME .
     - docker push $RELEASE_IMAGE_NAME
