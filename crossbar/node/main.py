@@ -40,6 +40,7 @@ from crossbar.common.checkconfig import color_json, InvalidConfigException
 from crossbar.worker import main as worker_main
 
 import nexus
+import nexus.domain
 import nexus.cron
 
 try:
@@ -1265,6 +1266,16 @@ def main(prog, args, reactor, personality):
         },
         environment=options.environment or None
     )
+
+    # If the db has disable_start_reset to a truthy value, we ignore the usual process
+    # of "cleanup" where stuff like registrations are all marked invalid. This is
+    # useful if we're doing multiple servers and doing low downtime transitions
+    if nexus.domain.config.nexus.db.get('disable_startup_reset'):
+        return
+
+    # Mark all registrations as unregistered
+    for uri_rec in nexus.domain.db.uris:
+        uri_rec.mark_unregistered_(True)
 
     # Mark all URIs as unregistered
 

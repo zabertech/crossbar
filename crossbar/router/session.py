@@ -490,6 +490,11 @@ class RouterSessionBase(BaseSession):
 
                 roles = self._router.attach(self)
 
+                # Store the custom just in case we need it later for weirdo reconnect
+                # see ./router.py and second Authenticate requests
+                self._custom = custom
+                self._roles = roles
+
                 msg = message.Welcome(self._session_id,
                                       roles,
                                       realm=realm,

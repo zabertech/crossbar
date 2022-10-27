@@ -28,6 +28,18 @@ class DB(NexusDB):
         'rosters': NexusRosters,
     }
 
+    # We record when the server was started here. This is used by
+    # the code that determines warnings so that we can have a reasonable
+    # grace period for when the server is started up from dead for the various
+    # services to reconnect
+    start_time = None
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Log the start time
+        self.start_time = time.time()
+
 ##################################################################
 # Authenticated ORM methods
 ##################################################################
