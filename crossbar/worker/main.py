@@ -16,6 +16,7 @@ from twisted.internet.error import ReactorNotRunning
 from crossbar._util import hl, hlid, hltype, _add_debug_options, term_print
 
 import nexus
+import nexus.domain
 import nexus.log
 
 try:

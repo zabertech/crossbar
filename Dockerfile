@@ -27,11 +27,14 @@ RUN    mkdir /logs /data  \
             libsasl2-dev \
             libldap2-dev \
             libunwind-dev \
+            nodejs \
+            npm \
             python3.8-dev \
             python3.8-venv \
             libssl-dev \
             tmux \
             vim-nox \
+            wget \
             software-properties-common \
         && add-apt-repository ppa:pypy/ppa \
         && apt update \

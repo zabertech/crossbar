@@ -5,21 +5,20 @@ from nexus.orm.common import yaml_dumps, yaml_loads
 # Nexus Metadata Objext
 ##################################################
 
-YAML_TEMPLATE_METADATA = """
-# Database version. This key should always be present
+YAML_TEMPLATE_METADATA = NexusSchema.from_yaml("""
 version: 1
 
-# Database Universal Unique Record ID
-uuid: null
+value:
+  help: |-
+    The data structure representing the preference information. We don't use it in the system
+    so the structure itself can be as simple as a string or as complex as a series of nested
+    dicts and lists
+  default:
+""")
 
-# The data structure representing the preference information. We don't use it in the system
-# so the structure itself can be as simple as a string or as complex as a series of nested
-# dicts and lists
-value: null
-""".strip()
 
 class NexusMetadatum(NexusRecord):
-    _yaml_template = YAML_TEMPLATE_METADATA
+    _schema = YAML_TEMPLATE_METADATA
     _key_name = 'key'
 
     def dict_(self, yaml=False):

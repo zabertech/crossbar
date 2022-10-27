@@ -11,46 +11,57 @@ from .metadata import NexusMetadata
 # Nexus User Objext
 ##################################################
 
-YAML_TEMPLATE_USER = """
-# Database version. This key should always be present
+YAML_TEMPLATE_USER = NexusSchema.from_yaml("""
 version: 1
 
-# Database Universal Unique Record ID
-uuid: null
+enabled:
+  help: |-
+    Is the user allowed to access the bus? Note that if the
+    setting is enabled yet the user is unable to authenticate from
+    LDAP, the user will not be permitted to use the bus
+  default: true
 
-# Is the user allowed to access the bus? Note that if the
-# setting is enabled yet the user is unable to authenticate from
-# LDAP, the user will not be permitted to use the bus
-enabled: True
+role:
+  help: |-
+    What role should be assigned to the user upon login
+    by default we have been using "frontend". Can also be "backend"
+    "trust", or "trusted". Note that usually "trust" would be preferred
+    as "trusted" comes with some annoying constraints within crossbar
+  default:
 
-# What role should be assigned to the user upon login
-# by default we have been using "frontend". Can also be "backend"
-# "trust", or "trusted". Note that usually "trust" would be preferred
-# as "trusted" comes with some annoying constraints within crossbar
-role: null
+source:
+  help: |-
+    What is the principle source of user metadata. Can be "ldap" to
+    test against the ldap source or "local" for internal database
+    This does not have any impact on keys which must be local regardless
+  default: local
 
-# What is the principle source of user metadata. Can be "ldap" to
-# test against the ldap source or "local" for internal database
-# This does not have any impact on keys which must be local regardless
-source: "local"
+password:
+  help: |-
+    If the source is local, the hashed password is defined here. The passwords
+    can be generated with:
+    import passlib.hash; print(passlib.hash.pbkdf2_sha256("password"))
+  default:
 
-# If the source is local, the hashed password is defined here. The passwords
-# can be generated with:
-# import passlib.hash; print(passlib.hash.pbkdf2_sha256("password"))
-password: null
+email:
+  help: |-
+    If the source is local, email address of the entity
+  default:
 
-# If the source is local, email address of the entity
-email: null
+upn:
+  help: |-
+    If the source is local, the userPrincipalName
+  default:
 
-# If the source is local, the userPrincipalName
-upn: null
+name:
+  help: |-
+    If the source is local, the user's name
+  default:
 
-# If the source is local, the user's name
-name: null
-""".strip()
+""")
 
 class NexusUser(NexusRecord):
-    _yaml_template = YAML_TEMPLATE_USER
+    _schema = YAML_TEMPLATE_USER
     path_format_ = '{parent_path}/{key}/data.yaml'
     ownership_path_format_ = '{parent_path}/{key}/'
 

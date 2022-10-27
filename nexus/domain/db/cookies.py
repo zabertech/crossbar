@@ -10,47 +10,68 @@ from nexus.log import log
 # NexusCookie instance
 ##################################################
 
-YAML_TEMPLATE_COOKIE = """
-# Database version. This key should always be present
+YAML_TEMPLATE_COOKIE = NexusSchema.from_yaml("""
 version: 1
 
-# Database Universal Unique Record ID
-uuid: null
+created:
+  help: |-
+    Timestamp when the cookie was created
+  default:
 
-# Timestamp when the cookie was created
-created: null
+max_age:
+  help: |-
+    maximum lifetime of the tracking/authenticating cookie
+    this will be compared against the file's mtime and if
+    it's out of date, it will be removed
+  default:
 
-# maximum lifetime of the tracking/authenticating cookie
-# this will be compared against the file's mtime and if
-# it's out of date, it will be removed
-max_age: null
+modified:
+  help: |-
+    UTC timestamp when the cookie was modified
+  default:
 
-# UTC timestamp when the cookie was modified
-modified: null
+authid:
+  help: |-
+    when a cookie has been set, and the WAMP session
+    was successfully authenticated thereafter, the latter
+    auth info is store here
+  default:
 
-# when a cookie has been set, and the WAMP session
-# was successfully authenticated thereafter, the latter
-# auth info is store here
-authid: null
-authrole: null
-authrealm: null
-authmethod: null
-authextra: null
+authrole:
+  help: |
+  default:
 
-# set of WAMP transports (WebSocket connections) this
-# cookie is currently used on
-connections: null
+authrealm:
+  help: |
+  default:
 
-# Session data
-data: null
+authmethod:
+  help: |
+  default:
 
-""".strip()
+authextra:
+  help: |
+  default:
+
+connections:
+  help: |-
+    set of WAMP transports (WebSocket connections) this
+    cookie is currently used on
+  default:
+
+data:
+  help: |-
+    Session data
+  default:
+
+""")
+
 
 
 class NexusCookie(NexusRecord):
     """ Handles a single Nexus Cookie
     """
-    _yaml_template = YAML_TEMPLATE_COOKIE
+    _schema = YAML_TEMPLATE_COOKIE
     _trie = None
 
     def cbt_data(self):

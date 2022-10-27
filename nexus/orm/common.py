@@ -5,12 +5,15 @@ import math
 import time
 import base64
 import datetime
+import threading
 import secrets
 import pathlib
 import passlib.hash
 import ruamel.yaml
 import shutil
 import uuid
+
+from nexus.log import log
 
 YAML_TEMPLATE_DEFAULT = """
 # Database version. This key should always be present
@@ -316,18 +319,46 @@ def simplify(v):
 #####################################################
 
 # Global YAML Serializer
-yaml = ruamel.yaml.YAML()
-yaml.explicit_end=False
-yaml.compact(seq_seq=False)
+class YAML(ruamel.yaml.YAML):
+    def __init__(self):
+        super().__init__()
+        self.explicit_end=False
+        self.compact(seq_seq=False)
+
+YAML_THREAD_CACHE = {}
+def yaml():
+    """ This is used since the YAML object caches things and there are conflicts if
+        we don't use it on a per-thread basis. In this function we generate a new
+        YAML object if we're on a thread that hasn't been allocated one yet. When we
+        do detect new threads, we'll quickly reap YAML instances for dead threads
+    """
+    thread_id = threading.get_ident()
+    if thread_id not in YAML_THREAD_CACHE:
+        # clean up thread cache for YAML object while we're at it
+        # if we noticate a YAML object for a dead thread, let's
+        # reap it
+        dead_threads = dict(YAML_THREAD_CACHE)
+        for thread in threading.enumerate():
+            test_thread_id = thread.ident
+            if test_thread_id in YAML_THREAD_CACHE:
+                del dead_threads[test_thread_id]
+        for k,v in dead_threads.items():
+            if k in YAML_THREAD_CACHE:
+                del YAML_THREAD_CACHE[k]
+
+        # Create a new YAML object for the current thread
+        YAML_THREAD_CACHE[thread_id] = YAML()
+
+    return YAML_THREAD_CACHE[thread_id]
 
 def yaml_dumps(data):
     io_buf = io.StringIO()
-    yaml.dump(data, io_buf)
+    yaml().dump(data, io_buf)
     io_buf.seek(0)
     yaml_str = str(io_buf.read())
     # Strip out the end-of-document marker
     if yaml_str.endswith('...\n'):
-           return yaml_str[:-4]
+       return yaml_str[:-4]
     return yaml_str
 
 def yaml_dump_file(data, fpath):
@@ -348,7 +379,7 @@ def yaml_dump_file(data, fpath):
 
     # Dump the data to this temp file
     with open(temp_fpath,'w') as fh:
-        yaml.dump(data, fh)
+        yaml().dump(data, fh)
 
     # If the filesize is 0, there's an issue so we'll just drop out
     if temp_fpath.stat().st_size == 0:
@@ -363,14 +394,13 @@ def yaml_dump_file(data, fpath):
     # Then move the new file over
     temp_fpath.rename(fpath)
 
-
 def yaml_loads(buf):
-    return yaml.load(buf)
+    return yaml().load(buf)
 
 def yaml_load(fh):
-    return yaml.load(fh)
+    return yaml().load(fh)
 
 def yaml_load_file(fpath):
     with open(fpath,'r') as fh:
-        data = yaml.load(fh)
+        data = yaml().load(fh)
     return data

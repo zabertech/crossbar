@@ -2,6 +2,8 @@ from nexus.orm.common import *
 from nexus.orm.collection import *
 from nexus.orm.record import *
 from nexus.orm.filter import *
+from nexus.orm.schema import *
+from nexus.orm.field import *
 from nexus.log import log
 
 import os

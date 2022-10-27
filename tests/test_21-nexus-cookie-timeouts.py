@@ -11,17 +11,6 @@ import swampyer
 
 from http.cookies import SimpleCookie
 
-COOKIE_STORE = SimpleCookie()
-
-
-YAML_PREF_TEST = """
-# this is a test
-something:
-  goes:
-    here: right
-    there: 1
-""".strip()
-
 initialize('nexus')
 
 # This is for logging in

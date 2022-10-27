@@ -10,37 +10,44 @@ from nexus.log import log
 # NexusRoster instance
 ##################################################
 
-YAML_TEMPLATE_ROSTER = """
-# Database version. This key should always be present
+YAML_TEMPLATE_ROSTER = NexusSchema.from_yaml("""
 version: 1
 
-# Database Universal Unique Record ID
-uuid: null
+created:
+  help: |-
+    Timestamp when the roster entry was created
+  default:
 
-# Timestamp when the roster entry was created
-created: null
+name:
+  help: |-
+    Roster Name
+  default:
 
-# Roster Name
-name: null
+visibility:
+  help: |-
+    Who can see this
+    A list of all roles that are allowed to view the entries
+    For many purposes it may be best to use ['frontend','backend']
+    Trust level access can see all entries
+  default: []
 
-# Who can see this
-# A list of all roles that are allowed to view the entries
-# For many purposes it may be best to use ['frontend','backend']
-# Trust level access can see all entries
-visibility: []
+session_id:
+  help: |-
+    The session that owns this roster entry
+  default:
 
-# The session that owns this roster entry
-session_id: null
+data:
+  help: |-
+    Roster data
+  default:
 
-# Roster data
-data: null
+""")
 
-""".strip()
 
 class NexusRoster(NexusRecord):
     """ Handles a single Nexus Roster
     """
-    _yaml_template = YAML_TEMPLATE_ROSTER
+    _schema = YAML_TEMPLATE_ROSTER
     _key_name = 'key'
 
 class NexusRosters(_AuthorizedNexusCollection):

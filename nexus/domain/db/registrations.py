@@ -4,48 +4,65 @@ from .common import *
 # NexusRegistration
 ##################################################
 
-YAML_TEMPLATE_URI_REGISTRATION = """
-# Database version. This key should always be present
+YAML_TEMPLATE_URI_REGISTRATION = NexusSchema.from_yaml("""
 version: 1
 
-# Database Universal Unique Record ID
-uuid: null
+uri:
+  help: |-
+    What is the URI?
+  default:
 
-# What is the URI?
-uri: null
+active:
+  help: |-
+    Is this URI currently active on the system?
+  default: false
 
-# Is this URI currently active on the system?
-active: false
+system:
+  help: |-
+    System component?
+  default: false
 
-# System component?
-system: false
+match:
+  help: |-
+    URI matching policy. can be one of
+    "exact", "prefix", "wildcard"
+  default: exact
 
-# URI matching policy. can be one of
-#     "exact", "prefix", "wildcard"
-match: "exact"
+invoke:
+  help: |-
+    Invocation rule.
+  default:
 
-# Invocation rule.
-invoke: null
+description:
+  help: |-
+    Description of the purpose of this registration call
+  default: ''
 
-# Description of the purpose of this registration call
-description: ""
+owner:
+  help: |-
+    Owner of the URI
+  default:
 
-# Owner of the URI
-owner: null
+create:
+  help: |-
+    When this was last registered
+  default:
 
-# When this was last registered
-create: null
+peer:
+  help: |-
+    From where was the last connected entry?
+  default:
 
-# From where was the last connected entry?
-peer: null
+authid:
+  help: |-
+    The authid of the last connected creator
+  default:
 
-# The authid of the last connected creator
-authid: null
+""")
 
-""".strip()
 
 class NexusRegistration(NexusRecord):
-    _yaml_template = YAML_TEMPLATE_URI_REGISTRATION
+    _schema = YAML_TEMPLATE_URI_REGISTRATION
     _key_name = 'key'
     path_format_ = '{parent_path}/{key}/data.yaml'
     ownership_path_format_ = '{parent_path}/{key}/'

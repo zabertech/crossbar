@@ -6,7 +6,6 @@ import swampyer
 from distutils.dir_util import copy_tree
 
 YAML_PREF_TEST = """
-# this is a test
 something:
   goes:
     here: right
@@ -55,6 +54,16 @@ def test_connect():
                         password=password,
                     ).start()
         assert client
+
+        # Do a valid connection where we mangle the case of the login
+        client_casing = swampyer.WAMPClientTicket(
+                        url="ws://localhost:8282/ws",
+                        realm="izaber",
+                        username=login.upper(),
+                        password=password,
+                    ).start()
+        assert client_casing
+        res = client_casing.call('auth.whoami')
 
         ###############################################################
         # Unix Socket Connection
