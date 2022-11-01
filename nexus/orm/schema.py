@@ -3,6 +3,8 @@ from nexus.log import log
 from nexus.orm.common import *
 from nexus.orm.field import *
 
+from copy import deepcopy
+
 class NexusSchema:
     version = None
     columns = None
@@ -40,7 +42,8 @@ class NexusSchema:
         data['version'] = self.version
 
         for field, spec in self.columns.items():
-            data[field] = spec.default
+            # For mutable types, we need a copy, otherwise spec defaults will be updated by records
+            data[field] = deepcopy(spec.default)
             if spec.help:
                 data.yaml_set_comment_before_after_key(
                       key=field,
@@ -77,7 +80,7 @@ class NexusSchema:
         # Bump version
         migrated['version'] = self.version
 
-        return migrated 
+        return migrated
 
 
     def __getitem__(self, k):
