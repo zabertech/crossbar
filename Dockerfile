@@ -2,6 +2,11 @@ ARG BASE_CONTAINER=ubuntu:20.04
 
 FROM $BASE_CONTAINER
 
+ARG CONTAINER_UID=1000
+ARG CONTAINER_GID=1000
+ENV CONTAINER_UID $CONTAINER_UID
+ENV CONTAINER_GID $CONTAINER_GID
+
 LABEL maintainer="Aki Mimoto <aki@zaber.com>"
 
 # Let's sit in the src directory by default
@@ -36,29 +41,43 @@ RUN    mkdir /logs /data  \
             vim-nox \
             wget \
             software-properties-common \
-        && add-apt-repository ppa:pypy/ppa \
-        && apt update \
-        && DEBIAN_FRONTEND=noninteractive apt install -y pypy3 pypy3-dev libsnappy-dev \
-        # Pip is handy to have around
-        && curl https://bootstrap.pypa.io/get-pip.py -o /root/get-pip.py \
-        && pypy3 /root/get-pip.py \
-        && apt clean \
-        && rm -rf ~/.cache \
-        && rm -rf /var/lib/apt/lists/*
+    && add-apt-repository ppa:pypy/ppa \
+    && apt update \
+    && DEBIAN_FRONTEND=noninteractive apt install -y pypy3 pypy3-dev libsnappy-dev \
+    # Pip is handy to have around
+    && curl https://bootstrap.pypa.io/get-pip.py -o /root/get-pip.py \
+    && pypy3 /root/get-pip.py \
+    && apt clean \
+    && rm -rf ~/.cache \
+    && rm -rf /var/lib/apt/lists/* \
+    # Create the new user
+    && groupadd -f -g $CONTAINER_GID zaber \
+    && useradd -ms /bin/bash -d /home/zaber -G sudo zaber -u $CONTAINER_UID -g $CONTAINER_GID \
+    && chown -R $CONTAINER_UID:$CONTAINER_GID /app \
+    && rm -rf /app \
+    && :
 
 # Copy over the data files
 COPY . /app
 
 WORKDIR /app
 
-# Install all the required bits for 
-RUN     : \
-        && pypy3 -m pip install --upgrade pip setuptools ujson \
-        && pypy3 -m pip install -r /app/requirements-latest.txt \
-        && pypy3 -m pip install -r /app/requirements-nexus.txt \
-        && pypy3 setup.py develop --no-deps \
-        # Done and now we can cleanup
-        && pypy3 -m pip cache purge
+# A bunch of new libs will need to be installed for crossbar and we'll go ahead and install
+# them as well. We could construct this Dockerfile so that the copy is at the top then
+# we do everything in a single RUN, however, that makes it so that we can't take advantage of
+# intermediate image caching and building this image from scratch is looonnngggg time.
+# Settings things up like this allows us to test the upgrades of multiple libraries (eg.
+# autobahn or crossbarfxdb) without having to install the system libs repeatedly
+RUN : \
+    && pypy3 -m pip install --upgrade pip setuptools ujson \
+    && pypy3 -m pip install -r /app/requirements-latest.txt \
+    && pypy3 -m pip install -r /app/requirements-nexus.txt \
+    && pypy3 setup.py develop --no-deps \
+    # Done and now we can cleanup
+    && pypy3 -m pip cache purge
+
+# Switch to the zaber user
+USER zaber
 
 EXPOSE 443 80
 

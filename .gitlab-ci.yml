@@ -31,10 +31,12 @@ docker-build-deploy:
   script:
     - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     - docker build -t $IMAGE_NAME .
-    # Don't do tests anymore. Just do them during development phases
+    # Don't do tests anymore. Just do them during development phases. This is because the
+    # tests take a huge amount of time and now we'll just want to do them locally through the
+    # developer container (which should be identical)
     # - docker run --name 'nexus' -v `pwd`/tests:/app/tests --rm $IMAGE_NAME pypy3 /app/tests/run-tests.py
     - docker push $IMAGE_NAME
-    - docker build -t $RELEASE_IMAGE_NAME .
+    - docker build -t $RELEASE_IMAGE_NAME --build-arg CONTAINER_UID=1000 --build-arg CONTAINER_GID=1000 .
     - docker push $RELEASE_IMAGE_NAME
   only:
     - tags
