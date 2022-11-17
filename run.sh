@@ -12,6 +12,9 @@ LOG_FORMAT=${LOG_FORMAT:=standard}
 PORT_PLAINTEXT=${PORT_PLAINTEXT:=8282}
 PORT_SSL=${PORT_SSL:=4430}
 
+CONTAINER_UID=${CONTAINER_UID:=`id -u`}
+CONTAINER_GID=${CONTAINER_GID:=`id -g`}
+
 # Usually the the system will be in --rm
 # However when we do a launch/run we will start it
 # in -d --restart mode
@@ -60,8 +63,12 @@ HELP
 LOG_TO_FILE=${LOG_TO_FILE:=''}
 
 build_docker_image () {
-  echo "Creating the ${IMAGE_NAME} docker image"
-  docker build -t $IMAGE_NAME .
+  echo "Creating the ${IMAGE_NAME} docker image for uid/gid ${CONTAINER_UID}/${CONTAINER_GID}"
+
+  docker build -t $IMAGE_NAME \
+                --build-arg CONTAINER_UID=$CONTAINER_UID \
+                --build-arg CONTAINER_GID=$CONTAINER_GID \
+                .
 }
 
 upsert_docker_image () {
