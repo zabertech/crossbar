@@ -184,6 +184,10 @@ class NexusURI(NexusRecord):
     def mark_registered_(self, force=False):
         """ Called on URI when it should be marked as registered live
         """
+        # Clear disconnect last value
+        self.disconnect = None
+        self.save_()
+
         if self.active and not force:
             return
 
@@ -279,7 +283,7 @@ class NexusURI(NexusRecord):
             self.parent_._alerts_pending.append((warning_type, disconnect_count, self))
             log.warn(f"{warning_type.upper()} {disconnect_count} {self.key}")
 
-        # Ddd it to the list of things for the system to check for disconnections
+        # Add it to the list of things for the system to check for disconnections
         self.parent_._uris_disconnected[self.key] = self
 
         self.save_()

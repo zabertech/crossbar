@@ -64,7 +64,6 @@ def test_connect():
                                         'disconnect_warn_after': "1",
                                         'disconnect_warn_reminder_after': 2,
                                         'disconnect_warn_last': None,
-                                        'disconnect': time.time()-1,
                                         'disconnect_count_warn_after': 5,
                                         'disconnect_count_warn_reminder_after': 2,
                                     })
