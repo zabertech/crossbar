@@ -315,12 +315,15 @@ class Controller:
         """ If the session is reauthenticated status is currently active,
             this will simply refresh the status to the current timestamp
         """
-        if not extra: return
+        if not extra:
+            return False
 
         # We need the session session token to be able to tag the
         # session as reauthenticated
         cache_id = extra.get('cache_id')
         cookie_obj = db.get(cache_id,'cookie')
+        if not cookie_obj:
+            return False
 
         # Validate that we haven't already lost the reauth status
         age = cookie_obj.last_authentication_age
