@@ -58,12 +58,16 @@ class Controller:
             returning AuthenticationResult instance means we have
                granted access
         """
-        user_obj = db.users[login]
-        user_obj.reload_()
+        user_obj = db.users.get_(login)
         if not user_obj:
+            log.warning(f"NOUSERERROR: Login {login} did not map to any user record.")
             return None
 
-        # Drop out if disable
+        # Force a refresh of the data just in case there have been
+        # changes on-disk
+        user_obj.reload_()
+
+        # Drop out if disabled
         if not user_obj.enabled:
             return False
 
@@ -129,6 +133,11 @@ class Controller:
             2. Creates the CookieSession tracking to ensure
                 private data can be crosslinked across sessions
         """
+
+        # We don't allow blank usernames
+        if not login:
+            log.warning(f"NOLOGINERROR: Login was blank")
+            return False
 
         # Force the login to be lower case
         login = login.lower()
