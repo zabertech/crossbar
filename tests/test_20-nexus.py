@@ -1,5 +1,6 @@
 from lib import *
 
+import re
 import txaio
 import swampyer
 
@@ -45,6 +46,29 @@ def test_connect():
                             username=login,
                             password=password+'broken',
                         ).start()
+
+        # Another invalid connection
+        try:
+            client = swampyer.WAMPClientTicket(
+                            url="ws://localhost:8282/ws",
+                            realm="izaber",
+                            username=None,
+                            password=password,
+                        ).start()
+        except swampyer.exceptions.ExAbort as ex:
+            assert not re.search('Internal Error', ex.args[0])
+
+        # And yet another invalid connection
+        try:
+            client = swampyer.WAMPClientTicket(
+                            url="ws://localhost:8282/ws",
+                            realm="izaber",
+                            username=login+'-SHOULDNOTEXIST',
+                            password=password,
+                        ).start()
+        except swampyer.exceptions.ExAbort as ex:
+            assert not re.search('Internal Error', ex.args[0])
+
 
         # Do a valid connection
         client = swampyer.WAMPClientTicket(
