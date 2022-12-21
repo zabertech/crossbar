@@ -242,7 +242,7 @@ class TrieNode:
 
             # Then check for regex matches as well
             for pattern, node in self.match_pattern.items():
-                if re.search(pattern, element, re.IGNORECASE):
+                if re.match(pattern, element, re.IGNORECASE):
                     matched_nodes.append(node)
         elif self.data:
             resolved_nodes.append(self)
