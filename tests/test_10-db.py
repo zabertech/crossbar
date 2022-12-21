@@ -27,11 +27,52 @@ def test_db():
 
     # Create a few entries
     uri_perms = {
+
         'com.izaber.wamp.public.*': 'c',
         'com.izaber.wamp.personal.*': 'cr',
         'com.izaber.wamp.elevated.*': 'c+',
         'com.izaber.wamp.chatty.*': 'sp',
         'com.izaber.wamp.docsrequired.*': 'r!c',
+
+        'com.izaber.wamp./dashboard:.*/.*': 'cs',
+        'com.izaber.wamp./dashboard:.*:dashboardRegistry/.get': 'c',
+        'com.izaber.wamp./zerp.*/.*': 'cs',
+        'com.izaber.wamp.ad.groups': 'c',
+        'com.izaber.wamp.ad.users': 'c',
+        'com.izaber.wamp.auth.authenticate': 'c',
+        'com.izaber.wamp.auth.extend_reauthenticate': 'c',
+        'com.izaber.wamp.auth.is_reauthenticated': 'c',
+        'com.izaber.wamp.auth.reauthenticate': 'c',
+        'com.izaber.wamp.auth.reauthenticate_expire': 'c',
+        'com.izaber.wamp.auth.refresh_authorizer': 'c',
+        'com.izaber.wamp.auth.whoami': 'c',
+        'com.izaber.wamp.directory.groups': 'c',
+        'com.izaber.wamp.directory.users': 'c',
+        'com.izaber.wamp.frontend.*': 'crsp',
+        'com.izaber.wamp.gmail.*': 'c',
+        'com.izaber.wamp.graphs.product_graph_consumption': 'c',
+        'com.izaber.wamp.my.apikeys.create': 'c',
+        'com.izaber.wamp.my.apikeys.delete': 'c',
+        'com.izaber.wamp.my.apikeys.list': 'c',
+        'com.izaber.wamp.my.metadata.delete': 'c',
+        'com.izaber.wamp.my.metadata.get': 'c',
+        'com.izaber.wamp.my.metadata.set': 'c',
+        'com.izaber.wamp.networkfs.*': 'c',
+        'com.izaber.wamp.notification.router.registerDestination': 'c',
+        'com.izaber.wamp.public.*': 'crsp',
+        'com.izaber.wamp.reauth': 'c+r+',
+        'com.izaber.wamp.system.db.create': 'c',
+        'com.izaber.wamp.system.db.delete': 'c',
+        'com.izaber.wamp.system.db.query': 'c',
+        'com.izaber.wamp.system.db.update': 'c',
+        'com.izaber.wamp.system.db.upsert': 'c',
+        'com.izaber.wamp.system.extend_reauthenticate': 'c',
+        'com.izaber.wamp.system.is_reauthenticated': 'c',
+        'com.izaber.wamp.system.preference.get': 'c',
+        'com.izaber.wamp.system.preference.set': 'c',
+        'com.izaber.wamp.system.roster.query': 'c',
+        'com.izaber.wamp.system.roster.register': 'c',
+        'com.izaber.wamp.system.roster.unregister': 'c',
     }
     for uri, perms in uri_perms.items():
         role_obj.permissions.append({
@@ -192,6 +233,24 @@ def test_db():
                     )
     # And we should be allowed again
     assert authz_res
+
+
+    ##################################################
+    # Request to calling `com.izaber.wamp.dashboard:staging-10270--add-to-zerp:purchasing.reschedulingRecommendations.getReschedulableProductIds`
+    # Previously this would generate a conflict exception
+    ##################################################
+
+    # Trying again after reauthentication
+    authz_res = controller.authorize(
+                        login,
+                        login_res['role'],
+                        'com.izaber.wamp.dashboard:staging-10270--add-to-zerp:purchasing.reschedulingRecommendations.getReschedulableProductIds',
+                        'call',
+                        extra
+                    )
+    # This should be allowed without any issues
+    assert authz_res
+
 
     ##################################################
     # Requires Documentation Flags
