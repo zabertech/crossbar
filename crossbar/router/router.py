@@ -563,6 +563,44 @@ class Router(RouterBase):
             pass
         elif isinstance( msg, message.Publish ):
             pass
+        elif isinstance( msg, message.Error):
+            def _(s):
+                self.log.warn(s.replace('{',r'{{').replace('}','}}'))
+
+            # Try and resolve authid making the request
+            try:
+                if session._session_details:
+                    authid = session._session_details.authid
+                else:
+                    authid = 'unknown'
+            except Exception as ex:
+                _(f"Couldn't get authid: {ex}")
+                authid = 'unknown'
+
+            # Try and resolve peer location making the request
+            try:
+                transport = session._transport
+                peer = ''
+                if hasattr(transport, 'http_headers'):
+                    http_headers = transport.http_headers
+                    if http_headers:
+                        peer = http_headers.get( 'x-real-ip',
+                                  http_headers.get( 'x-forwarded-for' ) )
+                        if peer and ',' in peer:
+                            peer = peer.split(',')[0].strip()
+
+                    if not peer and transport.peer:
+                        peer = transport.peer
+                        # peer can also be `unix` which doesn't have an associated
+                        # IP breakdown
+                        if ':' in peer:
+                            peer = peer.split(':')[1]
+            except Exception as ex:
+                _(f"Couldn't get peer: {ex}")
+                peer = 'unknown'
+
+            _(f"message.Error to {authid}@{peer}: {msg}")
+
         else:
             self.log.warn(f"process<{cbtid}>: {type(msg)}")
 
