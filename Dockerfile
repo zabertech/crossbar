@@ -7,6 +7,8 @@ ARG CONTAINER_GID=1000
 ENV CONTAINER_UID $CONTAINER_UID
 ENV CONTAINER_GID $CONTAINER_GID
 
+ENV TZ="America/Vancouver"
+
 LABEL maintainer="Aki Mimoto <aki@zaber.com>"
 
 # Let's sit in the src directory by default
