@@ -1,9 +1,12 @@
 import time
+import datetime
 import threading
 import traceback
 
 from .common import *
 from izaber import config
+
+from cron_validator import CronValidator
 
 from nexus.log import log
 
@@ -160,6 +163,31 @@ zombie_lifespan:
     If a URI reregisters, countdown will be reset
   default:
 
+schedule:
+  help: |-
+    Set using cron syntax when what disconnect timeout schedule. When set, this may
+    override the values from following fields:
+
+    - disconnect_count_warn_after
+    - disconnect_count_warn_reminder_after
+    - disconnect_warn_reminder_after
+    - disconnect_warn_after
+
+    What the system will do is use the current field values as defaults. If the check at
+    that time does not match any of the schedule entries, those values will remain in use.
+
+    If there are matches, however, the match will cause the values to override the current
+    settings. For example. Say at 8AM, we'd like to have disconnect_count_warn_after and
+    disconnect_count_warn_reminder_after to 1234, the following can work
+
+    * 8 * * * disconnect_count_warn_after:1234, disconnect_count_warn_reminder_after:1234
+
+    If multiple entries match, the matches will be executed sequentially and each positive
+    match will override the previous values. The final set of values will be based upon
+    the sequential application of values from the matched entries.
+
+  default:
+
 """)
 
 class NexusURI(NexusRecord):
@@ -174,6 +202,71 @@ class NexusURI(NexusRecord):
     def delete_(self):
         self.parent_._uris_disconnected.pop(self.key)
         return super().delete_()
+
+    def get_schedule_overrides_(self, now=None):
+        """ Returns the current matched ruleset
+
+            Set using cron syntax when what disconnect timeout schedule. When set, this may
+            override the values from following fields:
+
+            - disconnect_count_warn_after
+            - disconnect_count_warn_reminder_after
+            - disconnect_warn_reminder_after
+            - disconnect_warn_after
+
+            What the system will do is use the current field values as defaults. If the check at
+            that time does not match any of the schedule entries, those values will remain in use.
+
+            If there are matches, however, the match will cause the values to override the current
+            settings. For example. Say at 8AM, we'd like to have disconnect_count_warn_after and
+            disconnect_count_warn_reminder_after to 1234, the following can work
+
+            * 8 * * * disconnect_count_warn_after:1234, disconnect_count_warn_reminder_after:1234
+
+            If multiple entries match, the matches will be executed sequentially and each positive
+            match will override the previous values. The final set of values will be based upon
+            the sequential application of values from the matched entries.
+
+        """
+        if not now: now = time.time()
+        dt = datetime.datetime.fromtimestamp(now)
+
+        schedule = self.schedule or ''
+        entries = schedule.strip().split('\n')
+        settings = {}
+        for k in ( 'disconnect_count_warn_after',
+                    'disconnect_count_warn_reminder_after',
+                    'disconnect_warn_reminder_after',
+                    'disconnect_warn_after', ):
+            settings[k] = self.get_(k)
+
+        for entry in entries:
+            try:
+                entry = (entry or '').strip()
+
+                # Skip empty lines
+                if not entry: continue
+
+                # Skip comments
+                if entry[0] == '#': continue
+                elements = entry.split(' ', 5)
+                if not elements: continue
+                pattern = " ".join(elements[:-1])
+
+                # does this pattern match the current date?
+                if not CronValidator.match_datetime(pattern, dt):
+                    continue
+
+                # Yes it does, let's get the override values
+                elements = map(str.strip, elements[-1].split(','))
+                for e in elements:
+                    k, v = e.split(':', 1)
+                    settings[k] = int(v)
+            except Exception as ex:
+                log.warn(f"Entry `{entry}`: {ex}")
+                pass
+
+        return settings
 
     def documented(self):
         # We return True if the owner and description have been defined
@@ -293,7 +386,9 @@ class NexusURI(NexusRecord):
             URI has exceeded allowed configuration. If the count has exceeded,
             return the rate value which would also be True-truthy
         """
-        if not self.disconnect_count_warn_after:
+        settings = self.get_schedule_overrides_(now)
+
+        if not settings.get('disconnect_count_warn_after'):
             return
 
         if not now: now = time.time()
@@ -305,7 +400,7 @@ class NexusURI(NexusRecord):
                connection[HISTORY_DISCONNECT] >= time_boundary:
                 disconnect_count += 1
 
-        if disconnect_count < self.disconnect_count_warn_after:
+        if disconnect_count < settings.get('disconnect_count_warn_after'):
             return
 
         return disconnect_count
@@ -316,40 +411,45 @@ class NexusURI(NexusRecord):
             if we need to send out an alert
         """
 
-        if not self.disconnect_count_warn_after:
+        settings = self.get_schedule_overrides_(now)
+
+        if not settings.get('disconnect_count_warn_after'):
             return
 
         if not now: now = time.time()
 
         disconnect_count = self.disconnect_count_exceeded_(now)
 
-        if not self.disconnect_count_warn_last:
+        if not settings.get('disconnect_count_warn_last'):
             return disconnect_count
 
         # Are we required to alert?
-        if not self.disconnect_count_warn_reminder_after:
+        if not settings.get('disconnect_count_warn_reminder_after'):
             return
 
-        reminder_at = self.disconnect_count_warn_reminder_after + self.disconnect_count_warn_last
+        reminder_at = settings.get('disconnect_count_warn_reminder_after') \
+                    + self.disconnect_count_warn_last
         if reminder_at > now:
             return
 
         return disconnect_count
 
-    def disconnect_warn_after_(self):
+    def disconnect_warn_after_(self, now=None):
         """ Returns the timestamp for which the system should flag a warning
             on this URI should it be disconnected. If no warning is required,
             will just return a false-y value
         """
-        if self.active or not self.disconnect_warn_after:
+        settings = self.get_schedule_overrides_(now)
+
+        if self.active or not settings.get('disconnect_warn_after'):
             return
 
         # Skip any warn entries that are not required to be addressed
         if self.disconnect_warn_last:
-            if not self.disconnect_warn_reminder_after:
+            if not settings.get('disconnect_warn_reminder_after'):
                 return
 
-            return self.disconnect_warn_last + self.disconnect_warn_reminder_after
+            return self.disconnect_warn_last + settings.get('disconnect_warn_reminder_after')
 
         # Don't need to send a warning we haven't disconnected
         elif not self.disconnect:
@@ -366,7 +466,7 @@ class NexusURI(NexusRecord):
         if server_base_time > base_time: 
             base_time = server_base_time
 
-        return base_time + self.disconnect_warn_after
+        return base_time + settings.get('disconnect_warn_after')
 
     def disconnect_downtime_alert_required_(self, now=None):
         """ Returns if we need to send a disconnection notice, we return
@@ -374,7 +474,7 @@ class NexusURI(NexusRecord):
         """
         if not now: now = time.time()
 
-        warn_after = self.disconnect_warn_after_()
+        warn_after = self.disconnect_warn_after_(now)
 
         if not warn_after: return
         if now < warn_after: return
@@ -550,7 +650,7 @@ class NexusURIs(_AuthorizedNexusCollection):
         for uri_key, uri_rec in list(self._uris_disconnected.items()):
             try:
                 # Skip any warn entries that are not required to be addressed
-                alert_required = uri_rec.disconnect_downtime_alert_required_()
+                alert_required = uri_rec.disconnect_downtime_alert_required_(now)
                 if not alert_required:
                     continue
 
