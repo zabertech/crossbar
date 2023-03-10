@@ -32,7 +32,7 @@ HISTORY_SIZE = 100
 DISCONNECTION_COUNT_FRAME_SIZE = 600
 
 COLUMNS = NexusSchema.from_yaml("""
-version: 1.6
+version: 1.7
 
 uri:
   help: |-

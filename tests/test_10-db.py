@@ -322,7 +322,7 @@ def test_db():
     future = datetime.datetime.now() + datetime.timedelta(seconds=0.5)
     apikey = user_obj.apikeys.create_({
                     'description': common.sentence(),
-                    'expires': str(future),
+                    'expires': future.strftime('%Y-%m-%d %H:%M'),
                 })
     key_login_res = controller.login(login, apikey.plaintext_key)
     assert key_login_res

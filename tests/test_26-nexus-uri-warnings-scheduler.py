@@ -82,7 +82,6 @@ def test_connect():
         z = datetime.datetime(2022,  3,  6,  1,  0,  0).timestamp()
         settings = uri_rec.get_schedule_overrides_(z)
 
-        print("!!!!", settings['disconnect_warn_after'] )
         assert settings['disconnect_warn_after'] == 10
 
         time.sleep(1)

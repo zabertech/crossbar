@@ -816,6 +816,7 @@ class NexusAPIKey extends DataComponent {
     // This enables a date/time selector for the expiry dates
     flatpickr(`#input-${this.uuid}-expires`, {
       enableTime: true,
+      dateFormat: "Y-m-d H:i",
     });
 
     // Activate the Modal dialog for api key (for perms)
@@ -1359,6 +1360,19 @@ class NexusURI extends DataComponent {
 
     editor.setValue(this.description);
     editor.clearSelection();
+
+    const editor_schedule = this.editor_schedule = ace.edit(`schedule-${this.uuid}`);
+    editor_schedule.setTheme("ace/theme/clouds");
+    editor_schedule.session.setMode("ace/mode/yaml");
+    editor_schedule.on('blur', ()=> {
+      const val = editor_schedule.getSession().getValue();
+      // validate the data
+      this.set('schedule', val);
+    });
+
+    editor_schedule.setValue(this.schedule);
+    editor_schedule.clearSelection();
+
   }
 };
 
