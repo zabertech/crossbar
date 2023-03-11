@@ -23,9 +23,9 @@
 # m h  dom mon dow   command
 
 # Vacuum the database every hour
-0   *  *  *    *     /app/docker/run-vacuum.sh >> /data/cron.log 2>&1
+0   *  *  *    *     /app/docker/run-vacuum.sh >> /logs/cron.log 2>&1
 
 # Syncronize the LDAP stuff every hour on the half hour
-30  *  *  *    *     /usr/local/bin/nexus users sync >> /data/cron.log 2>&1
+30  *  *  *    *     /app/docker/run-users-sync.sh >> /logs/cron-users-sync.log 2>&1
 
 

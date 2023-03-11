@@ -39,6 +39,7 @@ RUN    mkdir /logs /data  \
             python3.8-dev \
             python3.8-venv \
             libssl-dev \
+            sudo \
             tmux \
             vim-nox \
             wget \
@@ -61,6 +62,7 @@ RUN    mkdir /logs /data  \
 
 # Copy over the data files
 COPY . /app
+COPY docker/sudoers /etc/sudoers.d/sudoers
 
 WORKDIR /app
 

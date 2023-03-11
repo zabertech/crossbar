@@ -180,3 +180,4 @@ tests/data/ldap-mock-data.yaml
 
 data/izaber.yaml
 data/node.log
+logs
