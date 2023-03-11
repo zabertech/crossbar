@@ -109,6 +109,57 @@ class DomainComponent(BaseComponent):
             return
         del SESSIONS[session_id]
 
+
+    #############################################################################
+    # Metadata extraction
+    #############################################################################
+    @wamp_register('.system.subscribed')
+    @wamp_register('system.subscribed')
+    @inlineCallbacks
+    def system_subscribed(self, details):
+        """ Returns a list of all known subscriptions on the system along with
+            any available metadata on the subscribers. Note that privileged
+            sessions do not return information (they get blocked from
+            wamp.session.get lower down) so subscriptions from trusted level
+            connections will not yield any data.
+        """
+
+        sessions = {}
+        subscriptions = {}
+
+        res = yield self.call('wamp.subscription.list')
+        for sub_type, sub_ids in res.items():
+            subscriptions_for_type = subscriptions.setdefault(sub_type, {})
+
+            for sub_id in sub_ids:
+                info = yield self.call('wamp.subscription.get', sub_id)
+                subscriptions_for_type[sub_id] = info
+
+                subscribed = info['sessions'] = {}
+                session_ids = yield self.call('wamp.subscription.list_subscribers', sub_id)
+                for session_id in session_ids:
+
+                    # Load information about the session should we not have any info
+                    if session_id not in sessions:
+                        try:
+                            session = yield self.call('wamp.session.get', session_id)
+                            if not session:
+                                continue
+                            session['peer'] = extract_peer_data(session['transport'])
+                        except Exception as ex:
+                            log.warning(f"!!!! GOT HERE WITH {ex}")
+                            session = None
+                        sessions[session_id] = session
+
+                    # No good session info? Skip
+                    session = sessions[session_id]
+                    if not session:
+                        continue
+
+                    subscribed[f"{authid}@{peer}"] = session
+
+        return subscriptions
+
     #############################################################################
     # Authentication
     #############################################################################
