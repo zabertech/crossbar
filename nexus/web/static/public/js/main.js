@@ -78,6 +78,7 @@ function parsePerms( perms ) {
  * into an object with keys matching permissions
  * constants
  ****************************************************/
+    perms ||= '';
     const matches = perms.matchAll(/([crspoq])([+]?)/g);
     let permData = {
             'call': PERM_DENY,
@@ -749,7 +750,7 @@ class NexusAPIKeyPermissions extends DataCollection {
               'perms': '',
               'uri': '',
             });
-      item.showModal();
+      // item.showModal();
     });
   }
 };
@@ -1112,7 +1113,6 @@ class NexusRolePermission extends DataComponent {
       });
     }
   }
-
 
   showModal() {
     // We create a throwaway item
