@@ -143,11 +143,50 @@
             aria-label=""
             placeholder="">
   </div>
+
   <div class="col-md-4">
     {{disconnectCountWarnLast}}
   </div>
+
 </div>
 
+<h2 class="mt-4"><i class="bi bi-calendar3"></i> Schedule</h2>
+
+<div class="row g-3">
+  <div class="col-md-12">
+
+    <p>Set using cron syntax when what disconnect timeout schedule. When set, this may override the values from following fields:</p>
+
+    <ul>
+      <li>disconnect_count_warn_after</li>
+      <li>disconnect_count_warn_reminder_after</li>
+      <li>disconnect_warn_reminder_after</li>
+      <li>disconnect_warn_after</li>
+    </ul>
+
+    <p>What the system will do is use the current field values as defaults. If the check
+    at that time does not match any of the schedule entries, those values will remain in use.</p>
+
+    <p>If there are matches, however, the match will cause the values to override the current
+    settings. For example. Say at 8AM, we'd like to have disconnect_count_warn_after and
+    disconnect_count_warn_reminder_after to 1234, the following can work</p>
+
+    <p>
+    <span class="code">* 8 * * * disconnect_count_warn_after:1234, disconnect_count_warn_reminder_after:1234</span>
+    </p>
+
+    <p>If multiple entries match, the matches will be executed sequentially and each positive
+    match will override the previous values. The final set of values will be based upon
+    the sequential application of values from the matched entries.</p>
+
+  </div>
+
+  <div class="col-md-12">
+    <div class="ace-editor-container">
+      <div class="ace-editor" id="schedule-{{uuid}}"></div>
+    </div>
+  </div>
+</div>
 
 <h2 class="mt-4"><i class="bi bi-gear"></i> Configuration</h2>
 

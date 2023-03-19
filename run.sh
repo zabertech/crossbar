@@ -36,6 +36,9 @@ COMMANDS:
   build
         Forces a build of the container
 
+  start 
+        docker run $CONTAINER_NAME
+
   stop
         docker stop $CONTAINER_NAME
 
@@ -95,6 +98,7 @@ launch_container () {
   CMD="docker run --name $CONTAINER_NAME \
       -ti \
       -v `pwd`:/app \
+      -v `pwd`/logs:/logs \
       -p $PORT_PLAINTEXT:8282 \
       -p $PORT_SSL:8181 \
       $LAUNCH_MODE \
@@ -135,6 +139,9 @@ else
     stop) docker stop $CONTAINER_NAME
         ;;
 
+    rm) docker rm -f $CONTAINER_NAME
+        ;;
+
     here) default_invoke_command
           cd /app/data
           $INVOKE_COMMAND
@@ -144,6 +151,12 @@ else
         ;;
 
     root) docker exec -ti -u root $CONTAINER_NAME /bin/bash
+        ;;
+
+    start) upsert_docker_image
+        INVOKE_COMMAND=""
+        LAUNCH_MODE="-d --restart always"
+        launch_container
         ;;
 
     *) upsert_docker_image

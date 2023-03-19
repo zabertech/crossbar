@@ -78,6 +78,7 @@ function parsePerms( perms ) {
  * into an object with keys matching permissions
  * constants
  ****************************************************/
+    perms ||= '';
     const matches = perms.matchAll(/([crspoq])([+]?)/g);
     let permData = {
             'call': PERM_DENY,
@@ -749,7 +750,7 @@ class NexusAPIKeyPermissions extends DataCollection {
               'perms': '',
               'uri': '',
             });
-      item.showModal();
+      // item.showModal();
     });
   }
 };
@@ -816,6 +817,7 @@ class NexusAPIKey extends DataComponent {
     // This enables a date/time selector for the expiry dates
     flatpickr(`#input-${this.uuid}-expires`, {
       enableTime: true,
+      dateFormat: "Y-m-d H:i",
     });
 
     // Activate the Modal dialog for api key (for perms)
@@ -1112,7 +1114,6 @@ class NexusRolePermission extends DataComponent {
     }
   }
 
-
   showModal() {
     // We create a throwaway item
     const role = this._parent._parent;
@@ -1359,6 +1360,19 @@ class NexusURI extends DataComponent {
 
     editor.setValue(this.description);
     editor.clearSelection();
+
+    const editor_schedule = this.editor_schedule = ace.edit(`schedule-${this.uuid}`);
+    editor_schedule.setTheme("ace/theme/clouds");
+    editor_schedule.session.setMode("ace/mode/yaml");
+    editor_schedule.on('blur', ()=> {
+      const val = editor_schedule.getSession().getValue();
+      // validate the data
+      this.set('schedule', val);
+    });
+
+    editor_schedule.setValue(this.schedule);
+    editor_schedule.clearSelection();
+
   }
 };
 

@@ -314,6 +314,19 @@ def test_db():
     key_login_res = controller.login(login, apikey.plaintext_key)
     assert key_login_res == False
 
+    # Create a key with expiry that is tz-naive. We'll just assume
+    # localtime zone. rm:11123 would throw nasty error since
+    # we're trying to compare non-tz to tz based times
+    # This would barf out the error:
+    # TypeError: cannot compare naive and aware datetimes
+    future = datetime.datetime.now() + datetime.timedelta(seconds=0.5)
+    apikey = user_obj.apikeys.create_({
+                    'description': common.sentence(),
+                    'expires': future.strftime('%Y-%m-%d %H:%M'),
+                })
+    key_login_res = controller.login(login, apikey.plaintext_key)
+    assert key_login_res
+
     # Create a key with specialized permissions
     apikey = user_obj.apikeys.create_({
                     'description': common.sentence(),

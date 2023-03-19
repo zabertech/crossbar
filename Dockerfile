@@ -7,6 +7,8 @@ ARG CONTAINER_GID=1000
 ENV CONTAINER_UID $CONTAINER_UID
 ENV CONTAINER_GID $CONTAINER_GID
 
+ENV TZ="America/Vancouver"
+
 LABEL maintainer="Aki Mimoto <aki@zaber.com>"
 
 # Let's sit in the src directory by default
@@ -37,6 +39,7 @@ RUN    mkdir /logs /data  \
             python3.8-dev \
             python3.8-venv \
             libssl-dev \
+            sudo \
             tmux \
             vim-nox \
             wget \
@@ -59,6 +62,7 @@ RUN    mkdir /logs /data  \
 
 # Copy over the data files
 COPY . /app
+COPY docker/sudoers /etc/sudoers.d/sudoers
 
 WORKDIR /app
 

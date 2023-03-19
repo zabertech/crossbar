@@ -30,6 +30,47 @@ from txaio import make_logger
 
 __all__ = ('Dealer', )
 
+def session_authid(session):
+    """ Fetch the authid from the session or caller object
+    """
+    try:
+        if session.authid:
+            authid = session.authid
+        else:
+            authid = 'unknown'
+    except Exception as ex:
+        _(f"Couldn't get authid: {ex}")
+        authid = 'unknown'
+    return authid
+
+def transport_peer(transport):
+    """ Fetch the peer location from the session or caller object
+        Sometimes the peer location is stored in another header due to
+        it being proxied. Because of this, we include some extra logic
+        to fetch it out
+    """
+    try:
+        peer = ''
+        if hasattr(transport, 'http_headers'):
+            http_headers = transport.http_headers
+            if http_headers:
+                peer = http_headers.get( 'x-real-ip',
+                          http_headers.get( 'x-forwarded-for' ) )
+                if peer and ',' in peer:
+                    peer = peer.split(',')[0].strip()
+
+            if not peer and transport.peer:
+                peer = transport.peer
+                # peer can also be `unix` which doesn't have an associated
+                # IP breakdown
+                if ':' in peer:
+                    peer = peer.split(':')[1]
+    except Exception as ex:
+        _(f"Couldn't get peer: {ex}")
+        peer = 'unknown'
+
+    return peer
+
 
 class InvocationRequest(object):
     """
@@ -1495,6 +1536,21 @@ class Dealer(object):
                                           callee_authid=callee_authid,
                                           callee_authrole=callee_authrole,
                                           forward_for=forward_for)
+
+            def _(s):
+                self.log.warn(s.replace('{',r'{{').replace('}','}}'))
+
+            # Get the source of the error message
+            source_authid = session_authid(session)
+            source_peer = transport_peer(session._transport)
+
+            # Get the recipient of the error message
+            caller = invocation_request.caller
+            target_authid = session_authid(caller)
+            target_peer = transport_peer(caller._transport)
+
+            # Write the error out to the log
+            _(f"message.Error {source_authid}@{source_peer} => {target_authid}@{target_peer}: {error}")
 
             # the calling session might have been lost in the meantime ..
             #

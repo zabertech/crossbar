@@ -30,6 +30,12 @@ def timestamp_passed(timestamp):
     now_dt = now()
     if isinstance(timestamp,str):
         timestamp = timestamp_parse(timestamp)
+
+    # rm:11123 if no timezone is found, simply apply the current
+    # local timezone
+    if not timestamp.tzinfo:
+        timestamp = timestamp.replace(tzinfo=localtz)
+
     return now_dt > timestamp
 
 ##################################################

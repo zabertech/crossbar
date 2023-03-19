@@ -13,6 +13,13 @@ You can check test folder for examples uris and expected outcomes: [matching tes
 
 ## Nexus System URIs
 
+### Metadata
+
+| URI Pattern | Purpose |
+|-------------|---------|
+|`com.izaber.wamp.system.subscribed`|Returns a dict of all active subscriptions on the system. Will also return information on subscribers if available. Trust level sessions are not disclosed via `wamp.session.get` so any trusted subscribers will not be disclosed.|
+
+
 ### Authentication
 | URI Pattern | Purpose |
 |-------------|---------|
