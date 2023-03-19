@@ -85,6 +85,8 @@ def launch_nexus(file_log=None, **kwargs):
     for i in range(60):
         time.sleep(1)
         if nexus_is_up():
+            # Just give it some extra time to settle
+            time.sleep(5)
             break
     else:
         print(f"Port is not open. Giving up though")
