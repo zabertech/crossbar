@@ -517,12 +517,15 @@ class NexusDB:
                 # manually added to the database and we just need to update the
                 # database properly
                 elif not uuid_fpath.exists():
+                    self.link(uuid, records_fpaths[0].relative_to(base_path))
                     results['actions'].append([ 'RELINK', uuid, index_record_fpath ])
 
                 # Okay, that's odd, the index is pointing to a different
                 # record. That's fine though since we're going to treat this
                 # current record as the master. We'll just relink it
                 else:
+                    uuid_fpath.unlink()
+                    self.link(uuid, records_fpaths[0].relative_to(base_path))
                     results['actions'].append([ 'RELINK', uuid, index_record_fpath ])
                     raise Exception(f"TODO: when uuid {uuid} points to non ts record "\
                                     f"`{index_record_fpath}`. Expected `{records_fpaths[0]}`")
