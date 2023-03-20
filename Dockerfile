@@ -1,4 +1,4 @@
-ARG BASE_CONTAINER=ubuntu:20.04
+ARG BASE_CONTAINER=ubuntu:22.04
 
 FROM $BASE_CONTAINER
 
@@ -30,14 +30,15 @@ RUN    mkdir /logs /data  \
             ca-certificates \
             cron \
             curl \
+            gpg-agent \
             python3-distutils \
             libsasl2-dev \
             libldap2-dev \
             libunwind-dev \
             nodejs \
             npm \
-            python3.8-dev \
-            python3.8-venv \
+            python3.10-dev \
+            python3.10-venv \
             libssl-dev \
             sudo \
             tmux \
@@ -76,6 +77,7 @@ RUN : \
     && pypy3 -m pip install --upgrade pip setuptools ujson \
     && pypy3 -m pip install -r /app/requirements-latest.txt \
     && pypy3 -m pip install -r /app/requirements-nexus.txt \
+    && cd /app \
     && pypy3 setup.py develop --no-deps \
     # Done and now we can cleanup
     && pypy3 -m pip cache purge
