@@ -1283,6 +1283,9 @@ class NexusURI extends DataComponent {
     super(opts);
   }
 
+  get schedule() {
+    return this.get('schedule')
+  }
 
   get description() {
     return this.get('description')
