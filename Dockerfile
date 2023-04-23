@@ -16,8 +16,6 @@ WORKDIR /app
 
 USER root
 
-COPY docker/99apt-timeouts /etc/apt/apt.conf.d/99apt-timeouts
-
 RUN    mkdir /logs /data  \
     && ln -sf /logs /app/logs \
     && ln -sf /data /app/data \
@@ -47,15 +45,11 @@ RUN    mkdir /logs /data  \
             vim-nox \
             wget \
             software-properties-common \
-    && :
-
-RUN    add-apt-repository ppa:pypy/ppa \
+    && add-apt-repository ppa:pypy/ppa \
     && apt update \
-    && DEBIAN_FRONTEND=noninteractive apt install -y pypy3=7.3.11+dfsg-1~ppa1~ubuntu22.04 pypy3-dev=7.3.11+dfsg-1~ppa1~ubuntu22.04 libsnappy-dev \
-    && :
-
+    && DEBIAN_FRONTEND=noninteractive apt install -y pypy3 pypy3-dev libsnappy-dev \
     # Pip is handy to have around
-RUN    curl https://bootstrap.pypa.io/get-pip.py -o /root/get-pip.py \
+    && curl https://bootstrap.pypa.io/get-pip.py -o /root/get-pip.py \
     && pypy3 /root/get-pip.py \
     && apt clean \
     && rm -rf ~/.cache \
