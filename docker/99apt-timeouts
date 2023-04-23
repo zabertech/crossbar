@@ -1,2 +1,0 @@
-Acquire::http::timeout "600";
-Acquire::https::timeout "600";
