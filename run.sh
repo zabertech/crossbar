@@ -69,6 +69,7 @@ build_docker_image () {
   echo "Creating the ${IMAGE_NAME} docker image for uid/gid ${CONTAINER_UID}/${CONTAINER_GID}"
 
   docker build -t $IMAGE_NAME \
+                --network=host \
                 --build-arg CONTAINER_UID=$CONTAINER_UID \
                 --build-arg CONTAINER_GID=$CONTAINER_GID \
                 .
