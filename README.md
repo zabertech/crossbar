@@ -151,7 +151,13 @@ Follow the standard **Quick Start** steps from above.
 
 1. Enter the container with `./run.sh login`
 2. Go into the tests directory: `cd tests`
-3. Execute tests: `./run-tests.py`
+3. Execute tests: `sudo ./run-tests.py`
+
+**Warning:** There is an issue in the docker build. If you run into any issues when running the tests and see that the `crossbar` binary cannot be loaded, you can run this command in the crossbar project root to fix it:
+
+```sh
+sudo pypy3 setup.py install
+```
 
 ### Editing Files
 
