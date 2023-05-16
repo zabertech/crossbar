@@ -1,4 +1,4 @@
-ARG BASE_CONTAINER=ubuntu:22.04
+ARG BASE_CONTAINER=registry.izaber.com/systems/crossbar/ubuntu:22.04
 
 FROM $BASE_CONTAINER
 
