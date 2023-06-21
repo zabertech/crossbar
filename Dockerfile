@@ -50,7 +50,8 @@ RUN    mkdir /logs /data  \
     && DEBIAN_FRONTEND=noninteractive apt install -y pypy3 pypy3-dev libsnappy-dev \
     # Pip is handy to have around
     && curl https://bootstrap.pypa.io/get-pip.py -o /root/get-pip.py \
-    && pypy3 /root/get-pip.py \
+    && pypy3 /root/get-pip.py --break-system-packages \
+    && pypy3 -m pip install pip==22.3.1 --break-system-packages \
     && apt clean \
     && rm -rf ~/.cache \
     && rm -rf /var/lib/apt/lists/* \
@@ -74,7 +75,7 @@ WORKDIR /app
 # Settings things up like this allows us to test the upgrades of multiple libraries (eg.
 # autobahn or crossbarfxdb) without having to install the system libs repeatedly
 RUN : \
-    && pypy3 -m pip install --upgrade pip setuptools ujson \
+    && pypy3 -m pip install --upgrade setuptools ujson \
     && pypy3 -m pip install -r /app/requirements-latest.txt \
     && pypy3 -m pip install -r /app/requirements-nexus.txt \
     && cd /app \

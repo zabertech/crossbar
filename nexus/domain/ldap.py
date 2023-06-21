@@ -98,7 +98,7 @@ class LDAPServer:
     default_user_attributes = [
               'sAMAccountName',
               'memberOf',
-              'name',
+              'displayName',
               'mail',
               'ipPhone',
               'userAccountControl',
@@ -410,7 +410,7 @@ class LDAPService:
         column_mappings = {
           'login': 'sAMAccountName',
           'email': 'mail',
-          'name': 'name',
+          'name': 'displayName',
           'upn': 'userPrincipalName',
         }
 
@@ -460,12 +460,6 @@ class LDAPService:
         # Need to get a list of groups first for the lookup
         groups_lookup = self.groups_lookup(force=True)
 
-        column_mappings = {
-          'login': 'sAMAccountName',
-          'email': 'mail',
-          'name': 'name',
-          'upn': 'userPrincipalName',
-        }
         entries = []
         for entry in self.users_raw():
             user_data = self.user_normalize(entry, groups_lookup)
@@ -487,11 +481,6 @@ class LDAPService:
         # Return nothing if we aren't using ldap
         if not self.server: return []
 
-        column_mappings = {
-          'login': 'sAMAccountName',
-          'email': 'mail',
-          'name': 'name',
-        }
         entries = []
         for entry in self.groups_raw():
             group_data = {
