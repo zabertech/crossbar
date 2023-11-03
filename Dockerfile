@@ -75,6 +75,9 @@ WORKDIR /app
 # Settings things up like this allows us to test the upgrades of multiple libraries (eg.
 # autobahn or crossbarfxdb) without having to install the system libs repeatedly
 RUN : \
+    # We want to make sure sudoers is only readable
+    && chmod 640 /etc/sudoers.d/sudoers \
+    # Then to the install parts
     && pypy3 -m pip install --upgrade setuptools ujson \
     && pypy3 -m pip install -r /app/requirements-latest.txt \
     && pypy3 -m pip install -r /app/requirements-nexus.txt \

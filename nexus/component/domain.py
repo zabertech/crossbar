@@ -180,7 +180,7 @@ class DomainComponent(BaseComponent):
         # If there's no ticket (password) provided we simply drop out
         password = options.get('ticket')
         if not password:
-            log.warning(f"NOPASSWORD: Rejected {authid} from {peer}<{agent}>")
+            log.warning(f"NOPASSWORD: Rejected {authid} from {peer}<{agent}> with not ticket")
             raise InvalidLoginPermissionError('Invalid Login')
 
         # This authentication may have been assigned a Cookie
@@ -352,6 +352,24 @@ class DomainComponent(BaseComponent):
         """ Runs the process that syncs the database with ldap and other things
         """
         self.sync()
+
+    @wamp_register('.system.vacuum.otps')
+    @wamp_register('system.vacuum.otps')
+    @inlineCallbacks
+    def vacuum_otps(self):
+        # Get a list of currently active otp
+        try:
+            start_time = time.time()
+            log.info(f"Running OTP vacuum")
+
+            db.users.vacuum_()
+
+            elapsed = time.time() - start_time
+            log.info(f"OTP vacuum took {elapsed:0.04f} seconds")
+
+        except Exception as ex:
+            log.error(f"Vacuum Sessions Exception! <{ex}>")
+        return True
 
     def _vacuum_sessions(self, session_ids):
         start_time = time.time()
@@ -961,6 +979,8 @@ class DomainComponent(BaseComponent):
     # Personal calls for transitional purposes
     ##################################################
 
+    @wamp_register('.my.metadata.list')
+    @wamp_register('my.metadata.list')
     def my_metadata_list(self, yaml=False, details=None):
         login = details.caller_authid
 
@@ -1043,9 +1063,87 @@ class DomainComponent(BaseComponent):
     def my_apikeys_delete(self, uuid_b64, details):
         return self.db_delete( [uuid_b64], details=details)
 
+
+    #############################################################################
+    # One-Time-Password OTP tasks
+    #############################################################################
+
+    @wamp_register('.my.otp.list')
+    @wamp_register('my.otp.list')
+    def my_otp_list(self, details):
+        login = details.caller_authid
+        otp_list = []
+        for otp_obj in db.users[login].otp:
+            otp_list.append(otp_obj.dict_())
+        return otp_list
+
+    @wamp_register('.my.otp.create')
+    @wamp_register('my.otp.create')
+    def my_otp_create(self, details=None):
+        # Find out if the user can access this uri
+        session = SESSIONS.get(details.caller,{})
+        if not session:
+            return False
+
+        # Find out who is calling
+        login = details.caller_authid
+        user_obj = db.users[login]
+        peer, agent = extract_peer_data(session.get('details',{}))
+        data_rec = {'origin': f"{login}@{peer}"}
+        return self.db_create(
+                        user_obj.uuid,
+                        'otps',
+                        data_rec,
+                        details=details)
+
+    @wamp_register('.my.otp.delete')
+    @wamp_register('my.otp.delete')
+    def my_otp_delete(self, uuid_b64, details):
+        return self.db_delete( [uuid_b64], details=details)
+
+    # For trusted users we can create OTP entries for others users
+
+    @wamp_register('.system.otp.list')
+    @wamp_register('system.otp.list')
+    def system_otp_list(self, login, details):
+        otp_list = []
+        for otp_obj in db.users[login].otp:
+            otp_list.append(otp_obj.dict_())
+        return otp_list
+
+    @wamp_register('.system.otp.create')
+    @wamp_register('system.otp.create')
+    def system_otp_create(self, login, data_rec=None, details=None):
+        # Find out if the user can access this uri
+        session = SESSIONS.get(details.caller,{})
+        if not session:
+            return False
+
+        user_obj = db.users[login]
+        if data_rec is None:
+            data_rec = {}
+
+        peer, agent = extract_peer_data(session.get('details',{}))
+        data_rec['origin'] = f"{details.caller_authid}@{peer} created token for {login}"
+        return self.db_create(
+                        user_obj.uuid,
+                        'otps',
+                        data_rec,
+                        details=details)
+
+    @wamp_register('.system.otp.delete')
+    @wamp_register('system.otp.delete')
+    def system_otp_delete(self, uuid_b64, details):
+        return self.db_delete( [uuid_b64], details=details)
+
     #############################################################################
     # Cron tasks
     #############################################################################
+
+    def cron_vacuum_otps(self):
+        """ Runs the process that removes old OTP entries
+        """
+        self.vacuum_otps()
 
     def cron_vacuum_sessions(self):
         """ Runs the process that removes old sessions
@@ -1130,6 +1228,7 @@ class DomainComponent(BaseComponent):
             # Then schedule it
             schedule.every(2).minutes.do(self.cron_vacuum_sessions).tag('component')
             schedule.every(2).minutes.do(self.cron_vacuum_registrations).tag('component')
+            schedule.every(1).minutes.do(self.cron_vacuum_otps).tag('component')
             schedule.every(1).seconds.do(self.cron_handle_alerts).tag('component')
 
             # Start the scheduler loop

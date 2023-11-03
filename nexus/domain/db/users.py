@@ -6,6 +6,7 @@ import passlib
 from .common import *
 from .apikeys import NexusAPIKeys
 from .metadata import NexusMetadata
+from .otp import NexusOTPs
 
 ##################################################
 # Nexus User Objext
@@ -68,6 +69,7 @@ class NexusUser(NexusRecord):
     _collections = {
         'apikeys': NexusAPIKeys,
         'metadata': NexusMetadata,
+        'otps': NexusOTPs,
     }
 
     _key_name = 'login'
@@ -85,6 +87,7 @@ class NexusUser(NexusRecord):
         if not shallow:
             user_rec['apikeys'] = self.apikeys.list_(yaml)
             user_rec['metadata'] = self.metadata.list_(yaml)
+            user_rec['otps'] = self.otps.list_(yaml)
 
         return user_rec
 
@@ -105,6 +108,11 @@ class NexusUser(NexusRecord):
             k = 'password'
         super().set_item_(k, v)
 
+    def vacuum_(self):
+        """ This should be run periodically (probably will be done via cron)
+            to remove old and stale OTPs from the database
+        """
+        self.otps.vacuum_()
 
 class NexusUsers(_AuthorizedNexusCollection):
     _role_permissions = {
@@ -118,4 +126,12 @@ class NexusUsers(_AuthorizedNexusCollection):
             'delete': False,
         }
     }
+
+    def vacuum_(self):
+        """ This should be run periodically (probably will be done via cron)
+            to remove old and stale OTPs from the database
+        """
+        for u in self:
+            u.vacuum_()
+
 

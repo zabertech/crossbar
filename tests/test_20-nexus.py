@@ -102,7 +102,6 @@ def test_connect():
                     ).start()
         assert unix_socket_client
 
-
         ###############################################################
         # Unix Socket Connection
         ###############################################################
@@ -172,6 +171,102 @@ def test_connect():
         assert call_res == 'reauth potato'
 
         ###############################################################
+        # OTP - One Time Passwords
+        ###############################################################
+
+        # Let's use the DB to create some OTP entries for the user
+        otp = []
+        for i in range(10):
+            otp_obj = user_obj.otps.create_({})
+            otp.append(otp_obj)
+
+        # Can we log in with each of them?
+        for otp_obj in otp:
+            auth_res = client.call('com.izaber.wamp.auth.authenticate',
+                                    login,
+                                    otp_obj.plaintext_key)
+            assert auth_res
+
+        # We should not be able to login with them again
+        for otp_obj in otp:
+            auth_res = client.call('com.izaber.wamp.auth.authenticate',
+                                    login,
+                                    otp_obj.plaintext_key)
+            assert not auth_res
+
+        # Great, let's add a restriction on an OTP
+        otp_obj = user_obj.otps.create_({
+                      'permissions': [{
+                          'uri': WHOAMI_URI,
+                          'perms': 'c'
+                      }],
+                  })
+
+        # Connect with the limited access key
+        client2 = swampyer.WAMPClientTicket(
+                        url="ws://localhost:8282/ws",
+                        realm="izaber",
+                        username=login,
+                        password=otp_obj.plaintext_key,
+                    ).start()
+        assert client2
+
+        who_res = client2.call(WHOAMI_URI)
+        assert who_res['authid']  == login
+        assert who_res['role']  == DEFAULT_ROLE
+
+        # Should be prevented
+        with pytest.raises(swampyer.exceptions.ExInvocationError):
+            hello_res = client2.call(HELLO_URI)
+
+        # Can we create an API key for ourselves?
+        new_otp = client.call('com.izaber.wamp.my.otp.create')
+        assert new_otp
+        plaintext_key = new_otp['plaintext_key']
+        assert plaintext_key
+        assert new_otp['login'] == login
+
+        # Connect with the generated key
+        client3 = swampyer.WAMPClientTicket(
+                        url="ws://localhost:8282/ws",
+                        realm="izaber",
+                        username=login,
+                        password=plaintext_key,
+                    ).start()
+        assert client3
+
+        # Create a super user
+        trusted_login, trusted_password, trusted_user_rec, trusted_user_obj = create_user('trust')
+
+        # The average user should not be able to create a OTP for anyone else
+        with pytest.raises(swampyer.exceptions.ExInvocationError):
+            result = client3.call('com.izaber.wamp.system.otp.create', trusted_login)
+
+        # However, the super user should be able to create a OTP for anyone else
+        trusted_client = swampyer.WAMPClientTicket(
+                        url="ws://localhost:8282/ws",
+                        realm="izaber",
+                        username=trusted_login,
+                        password=trusted_password,
+                    ).start()
+        assert trusted_client
+        new_otp = trusted_client.call('com.izaber.wamp.system.otp.create', login)
+        assert new_otp
+
+        # Can we login with the generated key. We also verify the identity
+        client3 = swampyer.WAMPClientTicket(
+                        url="ws://localhost:8282/ws",
+                        realm="izaber",
+                        username=login,
+                        password=new_otp['plaintext_key'],
+                    ).start()
+        assert client3
+
+        who_res = client3.call(WHOAMI_URI)
+        assert who_res['authid']  == login
+        assert who_res['role']  == DEFAULT_ROLE
+
+        ###############################################################
         # API Keys
         ###############################################################
 
@@ -188,7 +283,6 @@ def test_connect():
             auth_res = client.call('com.izaber.wamp.auth.authenticate',
                                     login,
                                     apikey_obj.plaintext_key)
-            
             assert auth_res
 
         # Great, let's add a restriction on the first key
@@ -390,6 +484,9 @@ def test_connect():
         recall_res = client.call('com.izaber.wamp.my.metadata.get', meta_key)
         assert recall_res
         assert 'something' in recall_res
+
+        list_res = client.call('com.izaber.wamp.my.metadata.get', meta_key)
+        assert list_res
 
         recall_res = client.call('com.izaber.wamp.my.metadata.get', meta_key, yaml=True)
         assert recall_res.strip() == YAML_PREF_TEST

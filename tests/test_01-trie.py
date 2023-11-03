@@ -49,6 +49,17 @@ def test_trie():
     matched = trie.match('a.b.c')
     assert not matched
 
+
+    # Deep Prefix matches
+    trie = TrieNode()
+    trie.append('a.b.c.*',True)
+    matched = trie.match('a.b.c.d.e.f')
+    assert matched
+    matched = trie.match('a.b.c.d.e')
+    assert matched
+    matched = trie.match('a.b.c.d')
+    assert matched
+
     trie.append('a.b.c.f',True)
     matched = trie.match('a.b.c')
     assert not matched

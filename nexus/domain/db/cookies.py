@@ -11,7 +11,7 @@ from nexus.log import log
 ##################################################
 
 YAML_TEMPLATE_COOKIE = NexusSchema.from_yaml("""
-version: 1
+version: 2
 
 created:
   help: |-
@@ -23,6 +23,14 @@ max_age:
     maximum lifetime of the tracking/authenticating cookie
     this will be compared against the file's mtime and if
     it's out of date, it will be removed
+  default:
+
+expires:
+  help: |-
+    When this cookie expires. This means that even if the user
+    refreshes the cookie periodically, this cookie will expire
+    after a certain amount of time. Blank if this does not have
+    any impact
   default:
 
 modified:
@@ -80,13 +88,33 @@ class NexusCookie(NexusRecord):
         return data
 
     def expired_(self):
-        """ Returns a true value if the record has gone stale
+        """ Returns the validity status of the key. There are two places
+            that we need to test.
+            1. The age of this cookie, since it's past a certain age
+               we deem it expired
+            2. If the cookie, even if it's fresh, we will mark it dead when
+               the cookie's expires timestamp is passed
         """
+
+        # Do we pass the absolute limit on this cookie's lifetime?
+        if self.expires:
+            return timestamp_passed(self.expires)
+
+        # Check the age of of last use
         age = time.time() - self.mtime_()
         return age > self.max_age
 
-    def touch_(self):
-        super().touch_()
+    def touch_(self, lazy_refresh=False):
+        """ Touches the cookie file to denote that it's still active.
+            The lazy_refresh argument will allow us to touch the file
+            only when it's alive so that we don't keep hammering it
+        """
+        if lazy_refresh:
+            age = time.time() - self.mtime_()
+            if age > self.max_age / 2:
+                super().touch_()
+        else:
+            super().touch_()
 
     def uri_authorizer_(self, force=False):
         restrictions = self.data.get('restrictions')
@@ -146,7 +174,6 @@ class NexusCookies(_AuthorizedNexusCollection):
         """ This should be run periodically (probably will be done via cron)
             to remove old and stale cookies from the database
         """
-
         for c in self:
             if c.expired_():
                 c.delete_()

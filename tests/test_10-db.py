@@ -51,12 +51,7 @@ def test_db():
         'com.izaber.wamp.frontend.*': 'crsp',
         'com.izaber.wamp.gmail.*': 'c',
         'com.izaber.wamp.graphs.product_graph_consumption': 'c',
-        'com.izaber.wamp.my.apikeys.create': 'c',
-        'com.izaber.wamp.my.apikeys.delete': 'c',
-        'com.izaber.wamp.my.apikeys.list': 'c',
-        'com.izaber.wamp.my.metadata.delete': 'c',
-        'com.izaber.wamp.my.metadata.get': 'c',
-        'com.izaber.wamp.my.metadata.set': 'c',
+        'com.izaber.wamp.my.*': 'c',
         'com.izaber.wamp.networkfs.*': 'c',
         'com.izaber.wamp.notification.router.registerDestination': 'c',
         'com.izaber.wamp.public.*': 'crsp',
@@ -269,6 +264,101 @@ def test_db():
     assert authz_res == PERM_REQUIRE_DOCUMENTATION
 
     # So let's add some documentation
+
+
+    ##################################################
+    # OTP Keys
+    ##################################################
+    otp = user_obj.otps.create_({})
+
+    key_login_res = controller.login(login, otp.plaintext_key)
+    cookie_obj = key_login_res['cookie_obj']
+    assert key_login_res
+    assert cookie_obj
+
+    # Create with expiry
+    # We're going to make one that is not expired
+    # then let it expire
+    localtz = pytz.timezone('America/Vancouver')
+    now = datetime.datetime.now(localtz)
+    future = now + datetime.timedelta(seconds=0.5)
+
+    otp = user_obj.otps.create_({})
+    assert otp.expires
+    key_login_res = controller.login(login, otp.plaintext_key)
+    assert key_login_res
+
+    otp = user_obj.otps.create_({
+                    'expires': str(future),
+                })
+    key_login_res = controller.login(login, otp.plaintext_key)
+    assert key_login_res
+
+    # Do we have that information?
+    user_rec = user_obj.dict_()
+    assert user_rec
+
+    # OTP should be 0 since we have created then used all our OTP records
+    assert len(user_rec['otps']) == 0
+
+    # Create a new OTP record that should expire shortly      
+    otp = user_obj.otps.create_({
+                    'expires': str(future),
+                })
+
+    # OTP should be 1 since we have just created a new one
+    assert len(user_rec['otps']) == 0
+
+    # Then let enough time elapse that it will expire
+    time.sleep(1)
+    now = localtz.localize(datetime.datetime.now())
+    assert now > future
+    key_login_res = controller.login(login, otp.plaintext_key)
+    assert key_login_res == False
+
+    # Create a key with expiry that is tz-naive. We'll just assume
+    # localtime zone. rm:11123 would throw nasty error since
+    # we're trying to compare non-tz to tz based times
+    # This would barf out the error:
+    # TypeError: cannot compare naive and aware datetimes
+    future = datetime.datetime.now() + datetime.timedelta(seconds=0.5)
+    otp = user_obj.otps.create_({
+                    'expires': future.strftime('%Y-%m-%d %H:%M'),
+                })
+    key_login_res = controller.login(login, otp.plaintext_key)
+    assert key_login_res
+
+    # Create a key with specialized permissions
+    otp = user_obj.otps.create_({
+                    'permissions': [{
+                                'uri': 'com.izaber.wamp.public.allowed',
+                                'perms': 'c',
+                            }]
+                })
+    key_login_res = controller.login(login, otp.plaintext_key)
+    assert key_login_res
+    extra = key_login_res['extra']
+    assert extra['has_restrictions']
+
+    # This call should authorize when using this key
+    authz_res = controller.authorize(
+                login,
+                login_res['role'],
+                'com.izaber.wamp.public.allowed',
+                'call',
+                extra
+            )
+    assert authz_res == PERM_ALLOW
+
+    # This call should not be (though the role is allowed)
+    authz_res = controller.authorize(
+                login,
+                login_res['role'],
+                'com.izaber.wamp.public.notallowed',
+                'call',
+                extra
+            )
+    assert authz_res == PERM_DENY
 
     ##################################################
     # API Keys

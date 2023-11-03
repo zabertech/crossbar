@@ -3,7 +3,7 @@
 # If file based logging is desired, use 
 # LOG_TO_FILE=/path/to/file run.sh
 
-IMAGE_NAME=${IMAGE_NAME:=izaber/nexus}
+IMAGE_NAME=${IMAGE_NAME:=registry.izaber.com/systems/crossbar:latest}
 CONTAINER_NAME=${CONTAINER_NAME:=nexus}
 CBDIR=${CBDIR:=/app/data}
 LOG_LEVEL=${LOG_LEVEL:=debug}
@@ -75,6 +75,12 @@ build_docker_image () {
                 .
 }
 
+publish_docker_image () {
+  echo "Publishing the ${IMAGE_NAME} docker image"
+  docker push $IMAGE_NAME
+}
+
+
 upsert_docker_image () {
   if [[ "$(docker images -q ${IMAGE_NAME} 2> /dev/null)" == "" ]]; then
     build_docker_image
@@ -89,7 +95,7 @@ prepare_environment () {
 }
 
 default_invoke_command () {
-  INVOKE_COMMAND="/app/run-server.sh"
+  INVOKE_COMMAND=""
 }
 
 launch_container () {
@@ -108,7 +114,7 @@ launch_container () {
   $CMD
 }
 
-login() {
+shell() {
   if [[ "$(docker inspect ${CONTAINER_NAME} 2> /dev/null)" == "[]" ]]; then
     upsert_docker_image
     INVOKE_COMMAND="/bin/bash"
@@ -137,6 +143,9 @@ else
     build) build_docker_image
         ;;
 
+    publish) publish_docker_image
+        ;;
+
     stop) docker stop $CONTAINER_NAME
         ;;
 
@@ -148,7 +157,10 @@ else
           $INVOKE_COMMAND
         ;;
 
-    login) login
+    login) shell
+        ;;
+
+    shell) shell
         ;;
 
     root) docker exec -ti -u root $CONTAINER_NAME /bin/bash
