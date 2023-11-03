@@ -48,7 +48,7 @@ def test_connect():
 
         schedule = textwrap.dedent('''
         * * * * * disconnect_warn_after:10
-        0 1 * * * 
+        0 1 * * * FIXME_WHAT_IS_THIS_ENTRY_FOR:12
         '''.strip())
 
         # We want to create a dummy URI entry that should trigger in a few seconds

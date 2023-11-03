@@ -535,7 +535,11 @@ class NodeController(NativeProcess):
 
         # izaber options
         args.extend(["--izaber_environment", izaber.config._env ])
-        args.extend(["--izaber_config", izaber.config.config_fpath ])
+        try:
+            args.extend(["--izaber_config", izaber.config._source.config_fpath ])
+        except AttributeError as ex:
+            self.log.warn(f"Could not find izaber_config default location {ex}")
+            args.extend(["--izaber_config", '' ])
 
         # Node-level callback to inject worker arguments
         #

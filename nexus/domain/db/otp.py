@@ -1,30 +1,25 @@
 import secrets
 import passlib
 import base64
+import pytz
+
 
 from .common import *
 
 from nexus.domain.auth import TrieNode
 
 ##################################################
-# NexusAPIKey
+# NexusOTP instance
 ##################################################
 
-YAML_TEMPLATE_APIKEY = NexusSchema.from_yaml("""
+YAML_TEMPLATE_OTP = NexusSchema.from_yaml("""
 version: 1
 
-plaintext_key:
+origin:
   help: |-
-    Plain text version of the api key. This field may be blank
-    as the user may have opted not to retain the clear text version due
-    to the higher security risk. Note that changing this plaintext key
-    does not change the hash value.
+    Log information related to the origination of the OTP request for
+    the purposes of audit records
   default:
-
-description:
-  help: |-
-    Description of the purpose of this key
-  default: ''
 
 expires:
   help: |-
@@ -65,12 +60,19 @@ def generate_secure_hash(login, key):
     hash_str = base64.urlsafe_b64encode(hashed['checksum'])[:-1]
     return hash_str.decode('utf8')
 
-class NexusAPIKey(NexusRecord):
-    """ Handles a single Nexus API key
+class NexusOTP(NexusRecord):
+    """ Handles a single Nexus OTP
     """
-    _schema = YAML_TEMPLATE_APIKEY
+    _schema = YAML_TEMPLATE_OTP
     _exclude_keys_dict = ['version', 'key']
     _trie = None
+    plaintext_key = None
+
+    def dict_(self, yaml=False, shallow=False):
+        rec = super().dict_(yaml)
+        rec['plaintext_key'] = self.plaintext_key
+        rec['login'] = self.parent_.parent_.login
+        return rec
 
     def uri_permissions(self, role, uri):
         """ This will return permissions values depending on whether
@@ -90,27 +92,23 @@ class NexusAPIKey(NexusRecord):
                 self._trie.append(perm['uri'], str_perms(perm['perms']))
         return self._trie
 
-    def authorize_(self, uri, action ):
-        """ Figure out based upon the list of available uri permissions if
-            this role is allowed to run the particular action
-        """
-        perms = self.uri_authorizer_().match(uri)
-        if not perms:
-            return PERM_DENY
-        permission = int(perms.data.get(action) or PERM_DENY)
-        return permission
-
     @property
     def key(self):
         return self.yaml_fpath_.stem
 
     def expired(self):
-        """ Returns the validity status of the key
-            Currently only checks for expires date
+        """ Returns the validity status of the key check expires date and remove
+            if it's expired
         """
+        # if expiry is null, we delete this OTP
         if not self.expires:
+            self.delete_()
             return False
-        return timestamp_passed(self.expires)
+        if timestamp_passed(self.expires):
+            self.delete_()
+            return True
+        else:
+            return False
 
     def effective_role(self):
         """ Returns the current role for the user. The role can be set
@@ -122,12 +120,8 @@ class NexusAPIKey(NexusRecord):
 
     def __str__(self):
         s = "{r.key} {r.login}"
-        if self.description:
-            s += ' "{r.description}"'
         if self.permissions:
             s += " rules:" + str(len(self.permissions))
-        else:
-            s += " DEV KEY"
         if self.expires:
             s += ' expires:{r.expires}'
         else:
@@ -135,7 +129,7 @@ class NexusAPIKey(NexusRecord):
 
         return s.format(r=self)
 
-class NexusAPIKeys(_AuthorizedNexusCollection):
+class NexusOTPs(_AuthorizedNexusCollection):
     _role_permissions = {
         'trust': True,
         'trusted': True,
@@ -146,6 +140,7 @@ class NexusAPIKeys(_AuthorizedNexusCollection):
             'delete': authorize_owned_delete('owner'),
         }
     }
+    plaintext_key_ = None
 
     def get_by_plaintext_(self, plaintext_key):
         """ We need to magically convert the plaintext password
@@ -159,15 +154,24 @@ class NexusAPIKeys(_AuthorizedNexusCollection):
         """
         # Find a unique key. It's very unlikely we'll have a
         # collision but test and address it, just in case
+        plaintext_key = None
         while True:
             plaintext_key = secrets.token_urlsafe(24)
             hashed_key = generate_secure_hash(self.parent_.login,plaintext_key)
             if not self.exists_(hashed_key):
-                data_rec['plaintext_key'] = plaintext_key
                 data_rec['key'] = hashed_key
                 break
 
-        return self.instantiate_(data_rec)
+        # Unless an expiry date has been set, we default to 10 minute
+        # lifetime
+        if 'expires' not in data_rec:
+            data_rec['expires'] = timestamp_future(60*10)
+
+        # We do special handling of the plaintext_key since we don't
+        # want to store it
+        rec = self.instantiate_(data_rec)
+        rec.plaintext_key = plaintext_key
+        return rec
 
     def _default_authorize_create(self, user_obj, action, kwargs):
         if kwargs['parent_uid_b64'] != user_obj.uuid:
@@ -187,4 +191,13 @@ class NexusAPIKeys(_AuthorizedNexusCollection):
         kwargs['uid_b64s'] = uid_b64s
 
         return kwargs
+
+    def vacuum_(self):
+        """ This should be run periodically (probably will be done via cron)
+            to remove old and stale OTP entries from the database
+        """
+
+        for c in self:
+            if c.expired_():
+                c.delete_()
 

@@ -167,6 +167,7 @@ class DB(NexusDB):
         """
         self.cookies.vacuum_()
         self.roles.vacuum_()
+        self.users.vacuum_()
         self.reindex_uuids()
 
 ##################################################################

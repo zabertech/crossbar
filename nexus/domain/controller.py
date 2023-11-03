@@ -1,6 +1,7 @@
 from nexus.constants import AUTH_SOURCE_LOCAL, \
                             AUTH_SOURCE_APIKEY, \
                             AUTH_SOURCE_LDAP, \
+                            AUTH_SOURCE_OTP, \
                             DEFAULT_ROLE, \
                             PERM_DENY, \
                             PERM_ALLOW, \
@@ -69,30 +70,66 @@ class Controller:
 
         # Drop out if disabled
         if not user_obj.enabled:
+            log.warning(f"AUTHERROR: Login {login} is disabled")
             return False
 
         # Check internal authentication
         if user_obj.authenticate(password):
             role = user_obj.role or DEFAULT_ROLE
             return AuthenticationResult(user_obj, role, AUTH_SOURCE_LOCAL)
+        else:
+            log.debug(f"AUTH: Login {login} NO Password match")
+
+        # Check OTP
+        if otp_obj := user_obj.otps.get_by_plaintext_(password):
+            log.info(f"AUTH: Login {login} using password that matches OTP")
+
+            # OTP almost always has time limits on their usage, we
+            # check here to ensure it hasn't been surpassed
+            # There's also another check in the authentication block
+            if otp_obj.expired():
+                log.warning(f"AUTHERROR: Login {login} OTP has expired")
+                return False
+
+            role = otp_obj.effective_role() or DEFAULT_ROLE
+            auth = AuthenticationResult(user_obj, role, AUTH_SOURCE_OTP, 
+                      {
+                          'permissions': otp_obj.permissions,
+                      })
+
+            # As we are going to use this OTP, we will shred this record
+            otp_obj.delete_()
+
+            return auth
+        else:
+            log.debug(f"AUTH: Login {login} NO OTP matches")
 
         # Check API keys next
-        key_obj = user_obj.apikeys.get_by_plaintext_(password)
-        if not key_obj:
-            return None
+        if key_obj := user_obj.apikeys.get_by_plaintext_(password):
+            log.info(f"AUTH: Login {login} using password that matches APIKEY")
 
-        # As some keys may have time limits on their usage, we
-        # check here to ensure it hasn't been surpassed
-        # There's also another check in the authentication block
-        if key_obj.expired():
-            return False
+            # As some keys may have time limits on their usage, we
+            # check here to ensure it hasn't been surpassed
+            # There's also another check in the authentication block
+            if key_obj.expired():
+                log.warning(f"AUTHERROR: Login {login} is using expired APIKEY")
+                return False
 
-        role = key_obj.effective_role() or DEFAULT_ROLE
-        return AuthenticationResult(user_obj, role, AUTH_SOURCE_APIKEY, 
-                  {
-                      'permissions': key_obj.permissions,
-                      'apikey': key_obj.key,
-                  })
+            role = key_obj.effective_role() or DEFAULT_ROLE
+            return AuthenticationResult(user_obj, role, AUTH_SOURCE_APIKEY, 
+                      {
+                          'permissions': key_obj.permissions,
+                          'apikey': key_obj.key,
+                      })
+        else:
+            log.debug(f"AUTH: Login {login} NO APIKEY matches")
+
+        log.debug(f"AUTHERROR: Login {login} failed local checks")
+        # Important: we return None since:
+        # True value: Allowed to login
+        # False: Explicitly denied access
+        # None: Unconclusive authentication from local database, further querying (eg. ldap) required
+        return None
 
     def authenticate(self, login, password):
         """ Returns the role associated with the login and password
@@ -109,6 +146,7 @@ class Controller:
             return
 
         # Use ldap authentication last
+        log.debug(f"AUTH: Login {login} attempt via LDAP")
         if not ldap.authenticate( login, password ):
             return
 
@@ -238,7 +276,16 @@ class Controller:
         cookie_obj = db.get(cache_id, 'cookie')
         auth_data = cookie_obj and cookie_obj.data.get('auth')
 
-        # Validate that the key has not yet expired
+        # There's a small chance that the cookie object may have expired
+        # If it has, delete the cookie, and deny
+        if cookie_obj:
+            if cookie_obj.expired_():
+                cookie_obj.delete_()
+                return PERM_DENY
+            cookie_obj.touch_(lazy_refresh=True)
+
+        # Validate that the key has not yet expired. We only really care
+        # in the case that it's access that has a limited lifetime
         if auth_data and auth_data[0] == AUTH_SOURCE_APIKEY:
             apikey = auth_data[1]
             apikey_obj = user_obj.apikeys.get_(apikey)
@@ -572,7 +619,6 @@ class Controller:
                 user_rec[k] = v
 
         return user_rec
-
 
     def user_enable(self, login):
         """ Sets the data associated with the user to be enabled=True

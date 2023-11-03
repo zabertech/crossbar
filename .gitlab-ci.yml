@@ -1,30 +1,14 @@
 services:
-  - docker:19.03.1-dind
+  - docker:dind
 
-image: docker:19.03.1
-
-python-package-build:
-  tags:
-    - docker-executor
-  stage: build
-  image: pypy:3
-  script:
-    - export
-    - python setup-izaber.py sdist bdist_wheel --universal
-  only:
-    - tags
-  artifacts:
-    paths:
-      - dist/
+image: docker:cli
 
 docker-build-deploy:
+  stage: build
   tags:
-    - docker
-    - dind
-    - build
-  stage: test
-  dependencies:
-    - python-package-build
+    - docker-executor
+  only:
+    - tags
   variables:
     IMAGE_NAME: $CI_REGISTRY_IMAGE:$CI_COMMIT_TAG
     RELEASE_IMAGE_NAME: $CI_REGISTRY_IMAGE:latest
@@ -38,22 +22,5 @@ docker-build-deploy:
     - docker push $IMAGE_NAME
     - docker build -t $RELEASE_IMAGE_NAME --build-arg CONTAINER_UID=1000 --build-arg CONTAINER_GID=1000 .
     - docker push $RELEASE_IMAGE_NAME
-  only:
-    - tags
-
-python-package-deploy:
-  tags:
-    - docker
-    - dind
-    - build
-  stage: deploy
-  image: pypy:3
-  dependencies:
-    - python-package-build
-  script:
-    - pip install twine
-    - TWINE_PASSWORD=${CI_JOB_TOKEN} TWINE_USERNAME=gitlab-ci-token python -m twine upload --verbose --repository-url ${CI_SERVER_URL}/api/v4/projects/${CI_PROJECT_ID}/packages/pypi dist/*
-  only:
-    - tags
 
 

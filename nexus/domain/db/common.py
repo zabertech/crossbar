@@ -10,14 +10,20 @@ __all__ = [
   'perm_allow',
   'perms_str',
   'str_perms',
+  'now',
+  'timestamp_future',
+  'timestamp_passed',
 ]
 
 import re
+import pytz
+import datetime
+import dateutil.parser
 
 from nexus.constants import PERM_DENY, PERM_REQUIRE_ELEVATED, PERM_ALLOW, \
                             PERM_REQUIRE_DOCUMENTATION, \
                             PERMS, TRAIT_TO_CODE, PERM_REGEX, PERM_TO_CODE, PERM_TO_NAME, \
-                            TRAITS, TRAIT_TO_NAME, SECONDS_IN_DAY, SECONDS_IN_WEEK
+                            TRAITS, TRAIT_TO_NAME, SECONDS_IN_DAY, SECONDS_IN_WEEK, TZ
 from nexus.orm import NexusRecord, NexusCollection, NexusField, NexusSchema
 
 class Perm:
@@ -267,3 +273,32 @@ def str_perms(perms):
         perm_struct[perm_name] = Perm(perm_code, PERM_ALLOW, modifier)
 
     return perm_struct
+
+#####################################################
+# Date Handling
+#####################################################
+
+# FIXME: Make this configurable
+localtz = pytz.timezone(TZ)
+
+def now():
+    return datetime.datetime.now(localtz)
+
+def timestamp_parse(timestamp):
+    return dateutil.parser.parse(timestamp)
+
+def timestamp_future(seconds):
+    return now() + datetime.timedelta(seconds=seconds)
+
+def timestamp_passed(timestamp):
+    now_dt = now()
+    if isinstance(timestamp,str):
+        timestamp = timestamp_parse(timestamp)
+
+    # rm:11123 if no timezone is found, simply apply the current
+    # local timezone
+    if not timestamp.tzinfo:
+        timestamp = timestamp.replace(tzinfo=localtz)
+
+    return now_dt > timestamp
+

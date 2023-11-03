@@ -398,13 +398,9 @@ def devdb_create(args):
             ['com.izaber.wamp.auth.extend_reauthenticate', 'c'],
             ['com.izaber.wamp.auth.refresh_authorizer', 'c'],
 
-            ['com.izaber.wamp.my.apikeys.list', 'c'],
-            ['com.izaber.wamp.my.apikeys.create', 'c'],
-            ['com.izaber.wamp.my.apikeys.delete', 'c'],
-
-            ['com.izaber.wamp.my.metadata.get', 'c'],
-            ['com.izaber.wamp.my.metadata.set', 'c'],
-            ['com.izaber.wamp.my.metadata.delete', 'c'],
+            # Personal functions
+            ['com.izaber.wamp.my.*', 'c'],
+            ['my.*', 'c'],
 
             ['com.izaber.wamp.ad.users', 'c'],
             ['com.izaber.wamp.ad.groups', 'c'],

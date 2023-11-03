@@ -1,3 +1,5 @@
 .dockerignore
 Dockerfile
 logs
+izaber.yaml
+data/

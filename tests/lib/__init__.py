@@ -110,13 +110,7 @@ def create_roles():
                 ['auth.extend_reauthenticate', 'c'],
                 ['auth.refresh_authorizer', 'c'],
 
-                ['my.apikeys.list', 'c'],
-                ['my.apikeys.create', 'c'],
-                ['my.apikeys.delete', 'c'],
-
-                ['my.metadata.get', 'c'],
-                ['my.metadata.set', 'c'],
-                ['my.metadata.delete', 'c'],
+                ['my.*', 'c'],
 
                 ['ad.users', 'c'],
                 ['ad.groups', 'c'],
