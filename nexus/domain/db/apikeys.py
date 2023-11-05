@@ -4,7 +4,10 @@ import base64
 
 from .common import *
 
-from nexus.domain.auth import TrieNode
+from izaber import config
+from nexus.log import log
+
+from nexus.domain.auth import TrieNode, PatternAlreadyExists
 
 ##################################################
 # NexusAPIKey
@@ -72,33 +75,9 @@ class NexusAPIKey(NexusRecord):
     _exclude_keys_dict = ['version', 'key']
     _trie = None
 
-    def uri_permissions(self, role, uri):
-        """ This will return permissions values depending on whether
-            or not the user is allowed to perform the particular
-            action on the URI
-        """
-        return self.uri_authorizer.get_permissions(role, uri)
-
     @property
     def login(self):
         return self.parent_.parent_.login
-
-    def uri_authorizer_(self, force=False):
-        if force or not self._trie:
-            self._trie = TrieNode()
-            for perm in self.permissions:
-                self._trie.append(perm['uri'], str_perms(perm['perms']))
-        return self._trie
-
-    def authorize_(self, uri, action ):
-        """ Figure out based upon the list of available uri permissions if
-            this role is allowed to run the particular action
-        """
-        perms = self.uri_authorizer_().match(uri)
-        if not perms:
-            return PERM_DENY
-        permission = int(perms.data.get(action) or PERM_DENY)
-        return permission
 
     @property
     def key(self):

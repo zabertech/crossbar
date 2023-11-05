@@ -1260,7 +1260,6 @@ def main(prog, args, reactor, personality):
 
     # Load up the izaber configuration
     nexus.initialize(
-        'crossbar',
         config={
             'config_filename': options.config or None,
         },

@@ -3,7 +3,7 @@ from lib import *
 import swampyer
 import re
 
-initialize('nexus')
+initialize()
 
 ROSTER_REGISTER = 'system.roster.register'
 ROSTER_UNREGISTER = 'system.roster.unregister'
@@ -160,7 +160,7 @@ def test_connect():
         p.terminate()
         p.wait()
 
-initialize('nexus')
+initialize()
 
 if __name__ == "__main__":
     test_connect()

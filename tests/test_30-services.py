@@ -2,7 +2,7 @@ from lib import *
 
 import swampyer
 
-initialize('nexus')
+initialize()
 
 def hello(invoke, name):
     return f"Hello {name}!"
@@ -60,7 +60,7 @@ def test_connect():
         p.terminate()
         p.wait()
 
-initialize('nexus')
+initialize()
 
 if __name__ == "__main__":
     test_connect()

@@ -23,7 +23,7 @@ from izaber import initialize, config
 
 from nexus.orm import *
 
-initialize('nexus')
+initialize()
 
 YAML_SCHEMA = """
 version: 1.0

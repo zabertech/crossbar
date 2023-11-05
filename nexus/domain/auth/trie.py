@@ -1,6 +1,9 @@
 import re
 import collections
 
+class PatternAlreadyExists(Exception):
+    pass
+
 class IntConstant(int):
     def __new__(cls, value):
         self = int.__new__(cls, value)
@@ -194,7 +197,7 @@ class TrieNode:
                 if not element.last:
                     raise Exception(f"'*' must be the last element of '{match}'")
                 if index.match_prefix:
-                    raise Exception(f"Pattern {match} conflicts with another rule with the same pattern")
+                    raise PatternAlreadyExists(f"Pattern {match} conflicts with another rule with the same pattern")
                 index.match_prefix = TrieNode(pattern_path=element.pattern_path)
                 index = index.match_prefix
                 element_count -= 1 # we don't consider the '*' at the end of a prefix to be an element

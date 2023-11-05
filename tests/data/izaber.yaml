@@ -8,6 +8,36 @@ default:
       skip_sync: False
       skip_vacuum: False
       notification_startup_grace: 0
+    apikey:
+      permissions:
+      - perms: ''
+        uri: com.izaber.wamp.my.apikeys.*
+      - perms: ''
+        uri: com.izaber.wamp.my.otp.*
+      - perms: ''
+        uri: my.otp.*
+      - perms: ''
+        uri: my.apikey.*
+      - perms: ''
+        uri: system.db.*
+      - perms: ''
+        uri: com.izaber.wamp.system.db.*
+    otp:
+      permissions:
+      - perms: ''
+        uri: com.izaber.wamp.my.apikeys.*
+      - perms: ''
+        uri: com.izaber.wamp.my.otp.*
+      - perms: ''
+        uri: my.otp.*
+      - perms: ''
+        uri: my.apikey.*
+      - perms: ''
+        uri: system.db.*
+      - perms: ''
+        uri: com.izaber.wamp.system.db.*
+
+
     ldap:
       server:
         - host: file://ldap-mock-data.yaml

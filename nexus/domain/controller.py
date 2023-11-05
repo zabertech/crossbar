@@ -294,9 +294,9 @@ class Controller:
             if apikey_obj.expired():
                 return PERM_DENY
 
-        # Do we have a session token to lookup? We really only care if there's
-        # something saying there's extra restrictions on this
-        if permission == PERM_ALLOW and extra and extra.get('has_restrictions'):
+        # Do we have a session token to lookup? Filter if there's any extra
+        # restrictions we have to respect
+        if permission == PERM_ALLOW and cookie_obj:
             if not cache_id:
                 raise ValueError('Missing cache_id when session has restrictions' \
                                  ' associated. Cannot look restrictions up so aborting.')

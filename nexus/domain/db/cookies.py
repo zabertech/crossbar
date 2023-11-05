@@ -2,7 +2,10 @@ import secrets
 import time
 
 from .common import *
-from nexus.constants import PERM_DENY
+
+from izaber import config
+
+from nexus.constants import PERM_DENY, PERM_ALLOW
 from nexus.domain.auth import TrieNode
 from nexus.log import log
 
@@ -116,22 +119,58 @@ class NexusCookie(NexusRecord):
         else:
             super().touch_()
 
-    def uri_authorizer_(self, force=False):
-        restrictions = self.data.get('restrictions')
-        if not restrictions:
-            return
+    def auth_scheme_(self):
+        """ Returns what method was used to authenticate the user
+        """
+        if auth := self.data.get('auth',[]):
+            return auth[0]
+        return
 
+    def uri_authorizer_(self, force=False):
+        """ Generates an Trie authorizer based upon the current session's
+            restrictions. If there are not restrictions at all, we'll just
+            return None
+        """
         if force or not self._trie:
-            self._trie = TrieNode()
-            for perm in restrictions:
-                self._trie.append(perm['uri'], str_perms(perm['perms']))
+
+            # We may need to add some default restrictions based upon which
+            # authentication scheme is being used
+            auth_scheme = self.auth_scheme_()
+            default_restrictions = config.nexus.get(auth_scheme,{}).get('permissions',[])
+
+            # The session specific restrictions
+            restrictions = self.data.get('restrictions', [])
+
+            # If there are no restrictions present, we'll just drop out
+            if not ( restrictions or default_restrictions ):
+                return
+
+            if force or not self._trie:
+                self._trie = TrieNode()
+                if not restrictions:
+                    restrictions.append(dict(
+                        uri="*",
+                        perms="crspoq"
+                    ))
+                for perm in restrictions:
+                    self._trie.append(perm['uri'], str_perms(perm['perms']))
+
+                for perm in default_restrictions:
+                    try:
+                        self._trie.append(perm['uri'], str_perms(perm['perms']))
+                    except PatternAlreadyExists:
+                        pass
+
         return self._trie
 
     def authorize_(self, uri, action ):
         """ Figure out based upon the list of available uri permissions if
             this role is allowed to run the particular action
         """
-        perms = self.uri_authorizer_().match(uri)
+        authorizer = self.uri_authorizer_()
+        if not authorizer:
+            return PERM_ALLOW
+        perms = authorizer.match(uri)
         if not perms:
             return PERM_DENY
         permission = perms.data.get(action) or PERM_DENY
