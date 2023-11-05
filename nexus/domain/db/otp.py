@@ -74,23 +74,9 @@ class NexusOTP(NexusRecord):
         rec['login'] = self.parent_.parent_.login
         return rec
 
-    def uri_permissions(self, role, uri):
-        """ This will return permissions values depending on whether
-            or not the user is allowed to perform the particular
-            action on the URI
-        """
-        return self.uri_authorizer.get_permissions(role, uri)
-
     @property
     def login(self):
         return self.parent_.parent_.login
-
-    def uri_authorizer_(self, force=False):
-        if force or not self._trie:
-            self._trie = TrieNode()
-            for perm in self.permissions:
-                self._trie.append(perm['uri'], str_perms(perm['perms']))
-        return self._trie
 
     @property
     def key(self):

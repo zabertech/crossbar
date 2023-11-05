@@ -21,6 +21,35 @@ default:
         startup_vacuum: False
         startup_sync: False
         path: ./data/db
+    apikey:
+      permissions:
+      - perms: ''
+        uri: com.izaber.wamp.my.apikeys.*
+      - perms: ''
+        uri: com.izaber.wamp.my.otp.*
+      - perms: ''
+        uri: my.otp.*
+      - perms: ''
+        uri: my.apikey.*
+      - perms: ''
+        uri: system.db.*
+      - perms: ''
+        uri: com.izaber.wamp.system.db.*
+    otp:
+      permissions:
+      - perms: ''
+        uri: com.izaber.wamp.my.apikeys.*
+      - perms: ''
+        uri: com.izaber.wamp.my.otp.*
+      - perms: ''
+        uri: my.otp.*
+      - perms: ''
+        uri: my.apikey.*
+      - perms: ''
+        uri: system.db.*
+      - perms: ''
+        uri: com.izaber.wamp.system.db.*
+
 
   crossbar: 
     version: 2

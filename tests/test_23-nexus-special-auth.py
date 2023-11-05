@@ -3,7 +3,7 @@ from lib import *
 import swampyer
 import re
 
-initialize('nexus')
+initialize()
 
 def connect(login, password):
     client = swampyer.WAMPClientTicket(
@@ -79,7 +79,7 @@ def test_connect():
         p.terminate()
         p.wait()
 
-initialize('nexus')
+initialize()
 
 if __name__ == "__main__":
     test_connect()

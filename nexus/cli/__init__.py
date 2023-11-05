@@ -635,7 +635,7 @@ class Runner:
         cwd = os.getcwd()
         try:
             os.chdir(args['--cbdir'])
-            initialize('nexus-db-manager')
+            initialize()
             self.handle_args(args)
 
         # Pur ourselves back to where we need to be

@@ -25,7 +25,7 @@ from nexus.domain import db
 from nexus.orm import RECORD_CACHE
 from nexus.orm.filter import Filter, build_filter
 
-initialize('nexus')
+initialize()
 
 def test_db():
 

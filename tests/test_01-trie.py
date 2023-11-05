@@ -16,6 +16,7 @@ from nexus.domain.auth.trie import TrieNode
 
 def test_trie():
     tests = [
+      # Search        Option A          Option B          Winner
       ['a.b.c.d.e',   'a.b.c.d.e',      'a.b.c.d.e.*',    1],
       ['a.b.c.d.e',   'a.b.c.d.f',      'a.b.c.d.e.*',    3],
       ['a.b.c.d.e.f', 'a.b.c.d.e',      'a.b.c.d.e.*',    2],
@@ -69,6 +70,17 @@ def test_trie():
     trie.append('a.b.c.d.e.*',2)
     matched = trie.match('a.b.c.d.e')
     assert not matched
+
+    # We expect an exception if we try and add two rules with the same prefix
+    trie = TrieNode()
+    trie.append('a.b.c.*','123')
+    success = False
+    try:
+        trie.append('a.b.c.*','123')
+    except Exception:
+        success = True
+    assert success
+
 
 if __name__ == "__main__":
     test_trie()

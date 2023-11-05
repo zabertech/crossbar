@@ -353,10 +353,8 @@ class DomainComponent(BaseComponent):
         """
         self.sync()
 
-    @wamp_register('.system.vacuum.otps')
-    @wamp_register('system.vacuum.otps')
     @inlineCallbacks
-    def vacuum_otps(self):
+    def _vacuum_otps(self):
         # Get a list of currently active otp
         try:
             start_time = time.time()
@@ -369,7 +367,12 @@ class DomainComponent(BaseComponent):
 
         except Exception as ex:
             log.error(f"Vacuum Sessions Exception! <{ex}>")
-        return True
+        yield True
+
+    @wamp_register('.system.vacuum.otps')
+    @wamp_register('system.vacuum.otps')
+    def vacuum_otps(self):
+        return self._vacuum_otps()
 
     def _vacuum_sessions(self, session_ids):
         start_time = time.time()
@@ -436,10 +439,8 @@ class DomainComponent(BaseComponent):
         self.vacuum_sessions()
         return True
 
-    @wamp_register('.systems.handle.alerts')
-    @wamp_register('systems.handle.alerts')
     @inlineCallbacks
-    def handle_alerts(self, details=None):
+    def _handle_alerts(self, details=None):
         """ Scans through the pending disconnect list for any entires that require
             notification
         """
@@ -460,7 +461,13 @@ class DomainComponent(BaseComponent):
         except Exception as ex:
                 tb = traceback.format_exc()
                 log.error(f"Unable to process alerts because <{ex}> {tb}")
-        return True
+        yield True
+
+    @wamp_register('.systems.handle.alerts')
+    @wamp_register('systems.handle.alerts')
+    def handle_alerts(self, details=None):
+        return self._handle_alerts(details)
+
 
     @wamp_register('.system.vacuum.registrations')
     @wamp_register('system.vacuum.registrations')

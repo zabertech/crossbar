@@ -11,7 +11,7 @@ import swampyer
 
 from http.cookies import SimpleCookie
 
-initialize('nexus')
+initialize()
 
 # This is for logging in
 def get_session_cookies( authid, password ):
@@ -220,7 +220,7 @@ def test_connect():
         p.terminate()
         p.wait()
 
-initialize('nexus')
+initialize()
 
 if __name__ == "__main__":
     test_connect()

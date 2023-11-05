@@ -502,7 +502,7 @@ def test_db():
     with pytest.raises(KeyError):
         db.users[login]
 
-initialize('nexus')
+initialize()
 
 if __name__ == "__main__":
     test_db()

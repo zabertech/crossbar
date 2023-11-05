@@ -1,1 +1,1 @@
-from .trie import TrieNode
+from .trie import TrieNode, PatternAlreadyExists

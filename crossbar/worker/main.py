@@ -155,7 +155,6 @@ def _run_command_exec_worker(options, reactor=None, personality=None):
 
     # Initialize our connection to the nexus subsystem
     nexus.initialize(
-        'crossbar',
         config={
             'config_filename': options.izaber_config or None,
         },
