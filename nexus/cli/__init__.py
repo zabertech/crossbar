@@ -445,6 +445,10 @@ def devdb_create(args):
             ['com.izaber.wamp.*', 'crsp'],
             ['roster.*', 'oq'],
         ],
+        'trust': [
+            ['*', 'crspoq'],
+        ],
+
     }
 
     # wamp_zerp needs to be in place because calls from dashboard need a

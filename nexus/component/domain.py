@@ -256,6 +256,7 @@ class DomainComponent(BaseComponent):
             # If the action requires documentation to be provided
             if permission == PERM_REQUIRE_DOCUMENTATION:
                 msg = f"{action}://{uri} requires documentation in the database before {action} may be called"
+                log.warning(f"AUTH DENIED REQUIRE DOCUMENTATION {authid=} {auth_role=} {uri=} {action=}")
                 raise RequireDocumentationPermissionError(msg)
 
             # Allowed
