@@ -19,7 +19,7 @@ def test_connect():
 
     try:
         # Create a random user
-        login, password, user_rec, user_obj = create_user()
+        login, password, user_rec, user_obj = create_user(role='trust')
 
         # Do a valid connection
         client = swampyer.WAMPClientTicket(

@@ -252,6 +252,7 @@ class Controller:
         # If permission is False-y it just means it's a blanket NOT ALLOWED
         # so we'll just short-circuit out
         if not permission:
+            log.warning(f"AUTH DENIED {login=} {role=} {uri=} {action=}")
             return PERM_DENY
 
         # Now we check to see if the authenticated user has permission to
@@ -269,6 +270,7 @@ class Controller:
             return permission
 
         if not user_obj.enabled:
+            log.warning(f"AUTH DENIED USER DISABLED {login=}")
             return PERM_DENY
 
         # Get some basic variables
@@ -281,6 +283,7 @@ class Controller:
         if cookie_obj:
             if cookie_obj.expired_():
                 cookie_obj.delete_()
+                log.warning(f"AUTH DENIED COOKIE EXPIRED {login=} ")
                 return PERM_DENY
             cookie_obj.touch_(lazy_refresh=True)
 
@@ -301,7 +304,10 @@ class Controller:
                 raise ValueError('Missing cache_id when session has restrictions' \
                                  ' associated. Cannot look restrictions up so aborting.')
             key_permissions = cookie_obj.authorize_(uri, action)
-            if not key_permissions:
+            if key_permissions is None:
+                pass
+            elif not key_permissions:
+                log.warning(f"AUTH DENIED COOKIE RESTRICTIONS {login=} ")
                 return PERM_DENY
 
         # Does this query require documentation? Let's verify if it does
@@ -321,6 +327,7 @@ class Controller:
                 raise ValueError('Missing cache_id when session requires elevated' \
                                  ' permissions. Cannot look last auth up so aborting.')
             if cookie_obj.last_authentication_age > ELEVATED_STALE_SECONDS:
+                log.warning(f"AUTH DENIED REQUIRE ELEVATED RENEW {login=} ")
                 return PERM_DENY
             else:
                 return PERM_ALLOW

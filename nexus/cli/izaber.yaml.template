@@ -175,17 +175,7 @@ default:
         - name: public
           authorizer: com.izaber.wamp.auth.authorizer
         - name: trust
-          permissions:
-          - allow:
-              subscribe: true
-              register: true
-              call: true
-              publish: true
-            uri: ''
-            match: prefix
-            disclose:
-              caller: true
-              publisher: true
+          authorizer: com.izaber.wamp.auth.authorizer
     #################################################################
     # COMPONENTS
     #################################################################

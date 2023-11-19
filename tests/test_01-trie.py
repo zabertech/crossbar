@@ -50,6 +50,11 @@ def test_trie():
     matched = trie.match('a.b.c')
     assert not matched
 
+    # Match everything test. A simple '*' should allow everything
+    trie = TrieNode()
+    trie.append('*',True)
+    matched = trie.match('a.b.c')
+    assert matched
 
     # Deep Prefix matches
     trie = TrieNode()

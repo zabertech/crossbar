@@ -134,6 +134,10 @@ def create_roles():
         'backend': [
                 ['*', 'crspoq'],
             ],
+        'trust': [
+                ['*.*', 'crspoq'],
+                ['*', 'crspoq'],
+            ],
     }
 
     for role, uris in roles.items():
