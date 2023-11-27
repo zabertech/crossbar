@@ -17,7 +17,8 @@ WORKDIR /app
 
 USER root
 
-RUN ln -sf /logs /app/logs \
+RUN mkdir -p /logs /data \
+    && ln -sf /logs /app/logs \
     && ln -sf /data /app/data \
     # Use the internal package library for faster building
     # Disabled for now since it seems DNS gets broken in CI and I don't want to
