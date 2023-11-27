@@ -16,7 +16,7 @@ WORKDIR /app
 
 USER root
 
-RUN    mkdir /logs /data  \
+RUN mkdir -p /logs /data \
     && ln -sf /logs /app/logs \
     && ln -sf /data /app/data
 # Use the internal package library for faster building
