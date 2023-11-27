@@ -19,11 +19,11 @@ USER root
 
 RUN ln -sf /logs /app/logs \
     && ln -sf /data /app/data \
-# Use the internal package library for faster building
-# Disabled for now since it seems DNS gets broken in CI and I don't want to
-# over-complicate things
-# && perl -p -i -e "s/archive.ubuntu.com/mirror.izaber.com/g" /etc/apt/sources.list \
-# Install packages
+    # Use the internal package library for faster building
+    # Disabled for now since it seems DNS gets broken in CI and I don't want to
+    # over-complicate things
+    # && perl -p -i -e "s/archive.ubuntu.com/mirror.izaber.com/g" /etc/apt/sources.list \
+    # Install packages
     && apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     git \
@@ -57,15 +57,18 @@ RUN ln -sf /logs /app/logs \
     && curl https://bootstrap.pypa.io/get-pip.py -o /root/get-pip.py \
     && pypy3 /root/get-pip.py --break-system-packages \
     && pypy3 -m pip install pip==22.3.1 --break-system-packages \
+
     # Clean up
     && apt clean \
     && rm -rf ~/.cache \
     && rm -rf /var/lib/apt/lists/* \
+
     # Create the new user and set permissions
     # User may already exist on the container
     && if ! getent group zaber >/dev/null; then groupadd -f -g $CONTAINER_GID zaber; fi \
     && if ! id -u zaber >/dev/null 2>&1; then useradd -ms /bin/bash -d /home/zaber -G sudo -u $CONTAINER_UID -g $CONTAINER_GID zaber; fi \
     && chown -R $CONTAINER_UID:$CONTAINER_GID /app \
+
     # Remove /app directory
     && rm -rf /app \
     && :
