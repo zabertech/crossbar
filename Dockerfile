@@ -1,4 +1,5 @@
-ARG BASE_CONTAINER=zaberit/nexus
+# Last updated: zaberit/nexus:3.0.20231122
+ARG BASE_CONTAINER=zaberit/nexus:latest
 
 FROM $BASE_CONTAINER
 
@@ -16,15 +17,14 @@ WORKDIR /app
 
 USER root
 
-RUN mkdir -p /logs /data \
-    && ln -sf /logs /app/logs \
-    && ln -sf /data /app/data
+RUN ln -sf /logs /app/logs \
+    && ln -sf /data /app/data \
 # Use the internal package library for faster building
 # Disabled for now since it seems DNS gets broken in CI and I don't want to
 # over-complicate things
 # && perl -p -i -e "s/archive.ubuntu.com/mirror.izaber.com/g" /etc/apt/sources.list \
 # Install packages
-RUN    apt-get update \
+    && apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     git \
     build-essential \
@@ -45,31 +45,29 @@ RUN    apt-get update \
     tmux \
     vim-nox \
     wget \
-    software-properties-common
+    software-properties-common \
 
-# Add PPA and install PyPy
-RUN    add-apt-repository ppa:pypy/ppa \
+    # Add PPA and install PyPy
+    && add-apt-repository ppa:pypy/ppa \
     && apt update \
-    && DEBIAN_FRONTEND=noninteractive apt install -y pypy3 pypy3-dev libsnappy-dev
+    && DEBIAN_FRONTEND=noninteractive apt install -y pypy3 pypy3-dev libsnappy-dev \
 
-# Pip is handy to have around
-# Install pip using PyPy
-RUN   curl https://bootstrap.pypa.io/get-pip.py -o /root/get-pip.py \
+    # Pip is handy to have around
+    # Install pip using PyPy
+    && curl https://bootstrap.pypa.io/get-pip.py -o /root/get-pip.py \
     && pypy3 /root/get-pip.py --break-system-packages \
-    && pypy3 -m pip install pip==22.3.1 --break-system-packages
-# Clean up
-RUN    apt clean \
+    && pypy3 -m pip install pip==22.3.1 --break-system-packages \
+    # Clean up
+    && apt clean \
     && rm -rf ~/.cache \
-    && rm -rf /var/lib/apt/lists/*
-
-# Create the new user and set permissions
-# User may already exist on the container
-RUN if ! getent group zaber >/dev/null; then groupadd -f -g $CONTAINER_GID zaber; fi \
+    && rm -rf /var/lib/apt/lists/* \
+    # Create the new user and set permissions
+    # User may already exist on the container
+    && if ! getent group zaber >/dev/null; then groupadd -f -g $CONTAINER_GID zaber; fi \
     && if ! id -u zaber >/dev/null 2>&1; then useradd -ms /bin/bash -d /home/zaber -G sudo -u $CONTAINER_UID -g $CONTAINER_GID zaber; fi \
-    && chown -R $CONTAINER_UID:$CONTAINER_GID /app
-
-# Remove /app directory
-RUN   rm -rf /app \
+    && chown -R $CONTAINER_UID:$CONTAINER_GID /app \
+    # Remove /app directory
+    && rm -rf /app \
     && :
 
 # Copy over the data files
