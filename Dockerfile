@@ -63,9 +63,11 @@ RUN    apt clean \
     && rm -rf /var/lib/apt/lists/*
 
 # Create the new user and set permissions
-RUN   groupadd -f -g $CONTAINER_GID zaber \
-    && useradd -ms /bin/bash -d /home/zaber -G sudo zaber -u $CONTAINER_UID -g $CONTAINER_GID \
+# User may already exist on the container
+RUN if ! getent group zaber >/dev/null; then groupadd -f -g $CONTAINER_GID zaber; fi \
+    && if ! id -u zaber >/dev/null 2>&1; then useradd -ms /bin/bash -d /home/zaber -G sudo -u $CONTAINER_UID -g $CONTAINER_GID zaber; fi \
     && chown -R $CONTAINER_UID:$CONTAINER_GID /app
+
 # Remove /app directory
 RUN   rm -rf /app \
     && :
