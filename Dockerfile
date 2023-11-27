@@ -17,8 +17,7 @@ WORKDIR /app
 
 USER root
 
-RUN mkdir -p /logs /data \
-    && ln -sf /logs /app/logs \
+RUN ln -sf /logs /app/logs \
     && ln -sf /data /app/data \
     # Use the internal package library for faster building
     # Disabled for now since it seems DNS gets broken in CI and I don't want to
@@ -47,29 +46,24 @@ RUN mkdir -p /logs /data \
     vim-nox \
     wget \
     software-properties-common \
-
     # Add PPA and install PyPy
     && add-apt-repository ppa:pypy/ppa \
     && apt update \
     && DEBIAN_FRONTEND=noninteractive apt install -y pypy3 pypy3-dev libsnappy-dev \
-
     # Pip is handy to have around
     # Install pip using PyPy
     && curl https://bootstrap.pypa.io/get-pip.py -o /root/get-pip.py \
     && pypy3 /root/get-pip.py --break-system-packages \
     && pypy3 -m pip install pip==22.3.1 --break-system-packages \
-
     # Clean up
     && apt clean \
     && rm -rf ~/.cache \
     && rm -rf /var/lib/apt/lists/* \
-
     # Create the new user and set permissions
     # User may already exist on the container
-    && if ! getent group zaber >/dev/null; then groupadd -f -g $CONTAINER_GID zaber; fi \
-    && if ! id -u zaber >/dev/null 2>&1; then useradd -ms /bin/bash -d /home/zaber -G sudo -u $CONTAINER_UID -g $CONTAINER_GID zaber; fi \
+    && groupadd -f -g $CONTAINER_GID zaber \
+    && usermod -d /home/zaber -u $CONTAINER_UID -g $CONTAINER_GID zaber \
     && chown -R $CONTAINER_UID:$CONTAINER_GID /app \
-
     # Remove /app directory
     && rm -rf /app \
     && :
