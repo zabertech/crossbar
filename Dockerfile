@@ -18,12 +18,13 @@ USER root
 
 RUN    mkdir /logs /data  \
     && ln -sf /logs /app/logs \
-    && ln -sf /data /app/data \
-    # Use the internal package library for faster building
-    # Disabled for now since it seems DNS gets broken in CI and I don't want to
-    # over-complicate things
-    # && perl -p -i -e "s/archive.ubuntu.com/mirror.izaber.com/g" /etc/apt/sources.list \
-    && apt-get update \
+    && ln -sf /data /app/data
+# Use the internal package library for faster building
+# Disabled for now since it seems DNS gets broken in CI and I don't want to
+# over-complicate things
+# && perl -p -i -e "s/archive.ubuntu.com/mirror.izaber.com/g" /etc/apt/sources.list \
+# Install packages
+RUN    apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     git \
     build-essential \
@@ -44,22 +45,29 @@ RUN    mkdir /logs /data  \
     tmux \
     vim-nox \
     wget \
-    software-properties-common \
-    && add-apt-repository ppa:pypy/ppa \
+    software-properties-common
+
+# Add PPA and install PyPy
+RUN    add-apt-repository ppa:pypy/ppa \
     && apt update \
-    && DEBIAN_FRONTEND=noninteractive apt install -y pypy3 pypy3-dev libsnappy-dev \
-    # Pip is handy to have around
-    && curl https://bootstrap.pypa.io/get-pip.py -o /root/get-pip.py \
+    && DEBIAN_FRONTEND=noninteractive apt install -y pypy3 pypy3-dev libsnappy-dev
+
+# Pip is handy to have around
+# Install pip using PyPy
+RUN   curl https://bootstrap.pypa.io/get-pip.py -o /root/get-pip.py \
     && pypy3 /root/get-pip.py --break-system-packages \
-    && pypy3 -m pip install pip==22.3.1 --break-system-packages \
-    && apt clean \
+    && pypy3 -m pip install pip==22.3.1 --break-system-packages
+# Clean up
+RUN    apt clean \
     && rm -rf ~/.cache \
-    && rm -rf /var/lib/apt/lists/* \
-    # Create the new user
-    && groupadd -f -g $CONTAINER_GID zaber \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create the new user and set permissions
+RUN   groupadd -f -g $CONTAINER_GID zaber \
     && useradd -ms /bin/bash -d /home/zaber -G sudo zaber -u $CONTAINER_UID -g $CONTAINER_GID \
-    && chown -R $CONTAINER_UID:$CONTAINER_GID /app \
-    && rm -rf /app \
+    && chown -R $CONTAINER_UID:$CONTAINER_GID /app
+# Remove /app directory
+RUN   rm -rf /app \
     && :
 
 # Copy over the data files
