@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# If file based logging is desired, use 
+# If file based logging is desired, use
 # LOG_TO_FILE=/path/to/file run.sh
 
-IMAGE_NAME=${IMAGE_NAME:=registry.izaber.com/systems/crossbar:latest}
+IMAGE_NAME=${IMAGE_NAME:=zaberit/nexus}
 CONTAINER_NAME=${CONTAINER_NAME:=nexus}
 CBDIR=${CBDIR:=/app/data}
 LOG_LEVEL=${LOG_LEVEL:=debug}
@@ -12,16 +12,16 @@ LOG_FORMAT=${LOG_FORMAT:=standard}
 PORT_PLAINTEXT=${PORT_PLAINTEXT:=8282}
 PORT_SSL=${PORT_SSL:=4430}
 
-CONTAINER_UID=${CONTAINER_UID:=`id -u`}
-CONTAINER_GID=${CONTAINER_GID:=`id -g`}
+CONTAINER_UID=${CONTAINER_UID:=$(id -u)}
+CONTAINER_GID=${CONTAINER_GID:=$(id -g)}
 
 # Usually the the system will be in --rm
 # However when we do a launch/run we will start it
 # in -d --restart mode
 LAUNCH_MODE=${LAUNCH_MODE:=--rm}
 
-help () {
-cat << HELP
+help() {
+  cat <<HELP
 Usage: run.sh [COMMAND] [ARGUMENTS]...
 Performs various for nexus servers including building images, launching and debugging support
 
@@ -60,52 +60,51 @@ HELP
 }
 
 # Please do not change the default behaviour of logging
-# In fact, the system uses invoke.sh to capture the 
+# In fact, the system uses invoke.sh to capture the
 # stdout and stderr for dumping into the ./data directory
 # automatically via tee.
 LOG_TO_FILE=${LOG_TO_FILE:=''}
 
-build_docker_image () {
+build_docker_image() {
   echo "Creating the ${IMAGE_NAME} docker image for uid/gid ${CONTAINER_UID}/${CONTAINER_GID}"
 
   docker build -t $IMAGE_NAME \
-                --network=host \
-                --build-arg CONTAINER_UID=$CONTAINER_UID \
-                --build-arg CONTAINER_GID=$CONTAINER_GID \
-                .
+    --network=host \
+    --build-arg CONTAINER_UID=$CONTAINER_UID \
+    --build-arg CONTAINER_GID=$CONTAINER_GID \
+    .
 }
 
-publish_docker_image () {
+publish_docker_image() {
   echo "Publishing the ${IMAGE_NAME} docker image"
   docker push $IMAGE_NAME
 }
 
-
-upsert_docker_image () {
-  if [[ "$(docker images -q ${IMAGE_NAME} 2> /dev/null)" == "" ]]; then
+upsert_docker_image() {
+  if [[ "$(docker images -q ${IMAGE_NAME} 2>/dev/null)" == "" ]]; then
     build_docker_image
   fi
 }
 
-prepare_environment () {
+prepare_environment() {
   if [ ! -f data/izaber.yaml ]; then
     echo "Copying over data/config.yaml.example to data/config.yaml"
     cp data/izaber.yaml.example data/izaber.yaml
   fi
 }
 
-default_invoke_command () {
+default_invoke_command() {
   INVOKE_COMMAND=""
 }
 
-launch_container () {
-  text=$(sed 's/[[:space:]]\+/ /g' <<< ${INVOKE_COMMAND})
+launch_container() {
+  text=$(sed 's/[[:space:]]\+/ /g' <<<${INVOKE_COMMAND})
   echo "Invoking: ${text}"
 
   CMD="docker run --name $CONTAINER_NAME \
       -ti \
-      -v `pwd`:/app \
-      -v `pwd`/logs:/logs \
+      -v $(pwd):/app \
+      -v $(pwd)/logs:/logs \
       -p $PORT_PLAINTEXT:8282 \
       -p $PORT_SSL:8181 \
       $LAUNCH_MODE \
@@ -115,7 +114,7 @@ launch_container () {
 }
 
 shell() {
-  if [[ "$(docker inspect ${CONTAINER_NAME} 2> /dev/null)" == "[]" ]]; then
+  if [[ "$(docker inspect ${CONTAINER_NAME} 2>/dev/null)" == "[]" ]]; then
     upsert_docker_image
     INVOKE_COMMAND="/bin/bash"
     launch_container
@@ -133,50 +132,62 @@ if [ $# -eq 0 ]; then
   launch_container
 else
   case $1 in
-    -h) help
-        ;;
-    --help) help
-        ;;
-    help) help
-        ;;
+  -h)
+    help
+    ;;
+  --help)
+    help
+    ;;
+  help)
+    help
+    ;;
 
-    build) build_docker_image
-        ;;
+  build)
+    build_docker_image
+    ;;
 
-    publish) publish_docker_image
-        ;;
+  publish)
+    publish_docker_image
+    ;;
 
-    stop) docker stop $CONTAINER_NAME
-        ;;
+  stop)
+    docker stop $CONTAINER_NAME
+    ;;
 
-    rm) docker rm -f $CONTAINER_NAME
-        ;;
+  rm)
+    docker rm -f $CONTAINER_NAME
+    ;;
 
-    here) default_invoke_command
-          cd /app/data
-          $INVOKE_COMMAND
-        ;;
+  here)
+    default_invoke_command
+    cd /app/data
+    $INVOKE_COMMAND
+    ;;
 
-    login) shell
-        ;;
+  login)
+    shell
+    ;;
 
-    shell) shell
-        ;;
+  shell)
+    shell
+    ;;
 
-    root) docker exec -ti -u root $CONTAINER_NAME /bin/bash
-        ;;
+  root)
+    docker exec -ti -u root $CONTAINER_NAME /bin/bash
+    ;;
 
-    start) upsert_docker_image
-        INVOKE_COMMAND=""
-        LAUNCH_MODE="-d --restart always"
-        launch_container
-        ;;
+  start)
+    upsert_docker_image
+    INVOKE_COMMAND=""
+    LAUNCH_MODE="-d --restart always"
+    launch_container
+    ;;
 
-    *) upsert_docker_image
-       INVOKE_COMMAND="$@"
-       LAUNCH_MODE="-d --restart always"
-       launch_container
-       ;;
+  *)
+    upsert_docker_image
+    INVOKE_COMMAND="$@"
+    LAUNCH_MODE="-d --restart always"
+    launch_container
+    ;;
   esac
 fi
-

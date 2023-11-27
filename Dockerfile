@@ -1,4 +1,4 @@
-ARG BASE_CONTAINER=registry.izaber.com/systems/crossbar/ubuntu:22.04
+ARG BASE_CONTAINER=zaberit/nexus
 
 FROM $BASE_CONTAINER
 
@@ -25,26 +25,26 @@ RUN    mkdir /logs /data  \
     # && perl -p -i -e "s/archive.ubuntu.com/mirror.izaber.com/g" /etc/apt/sources.list \
     && apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-            git \
-            build-essential \
-            ca-certificates \
-            cron \
-            curl \
-            gpg-agent \
-            python3-distutils \
-            libsasl2-dev \
-            libldap2-dev \
-            libunwind-dev \
-            nodejs \
-            npm \
-            python3.10-dev \
-            python3.10-venv \
-            libssl-dev \
-            sudo \
-            tmux \
-            vim-nox \
-            wget \
-            software-properties-common \
+    git \
+    build-essential \
+    ca-certificates \
+    cron \
+    curl \
+    gpg-agent \
+    python3-distutils \
+    libsasl2-dev \
+    libldap2-dev \
+    libunwind-dev \
+    nodejs \
+    npm \
+    python3.10-dev \
+    python3.10-venv \
+    libssl-dev \
+    sudo \
+    tmux \
+    vim-nox \
+    wget \
+    software-properties-common \
     && add-apt-repository ppa:pypy/ppa \
     && apt update \
     && DEBIAN_FRONTEND=noninteractive apt install -y pypy3 pypy3-dev libsnappy-dev \

@@ -22,7 +22,7 @@ Differences to mainline/additions:
 
 The primary development/host environment for this customization has been [Ubuntu Server 20.04](https://releases.ubuntu.com/20.04/). While the apt repo copy should work, usually the latest official [Docker Instructions](https://docs.docker.com/desktop/linux/install/ubuntu/).
 
-1. Check out this repository `git clone https://gitlab.izaber.com/systems/crossbar`
+1. Check out this repository `git clone https://github.com/zabertech/crossbar.git`
 2. Build and login to the container by running `./run.sh login`
 3. Once in the container, create the new database: `nexus devdb create --cbdir data your_admin_user your_admin_password`
 4. Run the server with `./run-server.sh`
