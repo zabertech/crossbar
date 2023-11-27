@@ -1,6 +1,6 @@
 attrs>=17.2.0
-autobahn @ git+https://gitlab.izaber.com/systems/zaber-autobahn-python.git@main
-autobahn[twisted,encryption,compress,serialization,scram,xbr] @ git+https://gitlab.izaber.com/systems/zaber-autobahn-python.git@main
+autobahn
+autobahn[twisted,encryption,compress,serialization,scram,xbr]
 base58>=2.1.0
 bcrypt==3.2.2
 bitarray==2.6.2
