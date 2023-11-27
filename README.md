@@ -24,10 +24,11 @@ The primary development/host environment for this customization has been [Ubuntu
 
 1. Check out this repository `git clone https://github.com/zabertech/crossbar.git`
 2. Build and login to the container by running `./run.sh login`
-3. Once in the container, create the new database: `nexus devdb create --cbdir data your_admin_user your_admin_password`
-4. Run the server with `./run-server.sh`
-5. Connect to crossbar by going to `http://your.host.ip:8282`
-6. Login with `your_admin_user` and `your_admin_password`
+3. Install crossbar using `pip install -e .`
+4. Once in the container, create the new database: `nexus devdb create --cbdir data your_admin_user your_admin_password`
+5. Run the server with `./run-server.sh`
+6. Connect to crossbar by going to `http://your.host.ip:8282`
+7. Login with `your_admin_user` and `your_admin_password`
 
 Logs from the server can be found in `./data/node.log`
 
