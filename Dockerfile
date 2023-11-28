@@ -59,8 +59,7 @@ RUN ln -sf /logs /app/logs \
     && apt clean \
     && rm -rf ~/.cache \
     && rm -rf /var/lib/apt/lists/* \
-    # Create the new user and set permissions
-    # User may already exist on the container
+    # Set permissions of existing zaber user
     && groupadd -f -g $CONTAINER_GID zaber \
     && usermod -d /home/zaber -u $CONTAINER_UID -g $CONTAINER_GID zaber \
     && chown -R $CONTAINER_UID:$CONTAINER_GID /app \
