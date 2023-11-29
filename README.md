@@ -24,7 +24,7 @@ The primary development/host environment for this customization has been [Ubuntu
 
 1. Check out this repository `git clone https://github.com/zabertech/crossbar.git`
 2. Build and login to the container by running `./run.sh login`
-3. Install crossbar using `sudo pypy3 setup.py install` [Reason](#warning)
+3. Install crossbar from root using `sudo pypy3 setup.py install` [Reason](#warning)
 4. Once in the container, create the new database: `nexus devdb create --cbdir data your_admin_user your_admin_password`
 5. Run the server with `./run-server.sh`
 6. Connect to crossbar by going to `http://your.host.ip:8282`
