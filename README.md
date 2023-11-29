@@ -24,7 +24,7 @@ The primary development/host environment for this customization has been [Ubuntu
 
 1. Check out this repository `git clone https://github.com/zabertech/crossbar.git`
 2. Build and login to the container by running `./run.sh login`
-3. Install crossbar using `sudo pypy3 setup.py install` [Reason](#running-tests)
+3. Install crossbar using `sudo pypy3 setup.py install` [Go to Warning](#warning)
 4. Once in the container, create the new database: `nexus devdb create --cbdir data your_admin_user your_admin_password`
 5. Run the server with `./run-server.sh`
 6. Connect to crossbar by going to `http://your.host.ip:8282`
@@ -154,6 +154,7 @@ Follow the standard **Quick Start** steps from above.
 2. Go into the tests directory: `cd tests`
 3. Execute tests: `sudo ./run-tests.py`
 
+<span id="warning"></span>
 **Warning:** There is an issue in the docker build. If you run into any issues when running the tests and see that the `crossbar` binary cannot be loaded, you can run this command in the crossbar project root to fix it:
 
 ```sh
